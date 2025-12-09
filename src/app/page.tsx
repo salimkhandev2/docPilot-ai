@@ -3,18 +3,20 @@ import ChatInterface from '../components/ai/ChatInterface'
 import AuthWrapper from '../components/auth/AuthWrapper'
 import Editor from '../components/Editor/Editor'
 import EditorWithHchldernNodesEditing from '../components/Editor/EditorChildEditing-v1'
+import BasicsGrapejsGeminiStreaming from '../components/Editor/BasicsGrapejs-gemini-streaming'
 
 
 function page() {
   return (
     // <AuthWrapper>
     <>
-        <ChatInterface/>
+      <BasicsGrapejsGeminiStreaming/>
+        {/* <ChatInterface/> */}
         {/* <EditorWithHchldernNodesEditing/> */}
-        <Editor/>
+        {/* <Editor/> */}
     </>
         // <Documents/>
-    // </AuthWrapper>
+        // </AuthWrapper>
   )
 }
 
