@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@botpress/client": "^1.26.0",
+    "@google/genai": "^1.32.0",
+    "@google/generative-ai": "^0.24.1",
     "@huggingface/inference": "^2.6.4",
     "@napi-rs/canvas": "^0.1.80",
     "@sparticuz/chromium-min": "^133.0.0",
@@ -24,6 +26,7 @@
     "grapesjs-blocks-basic": "^1.0.2",
     "grapesjs-plugin-forms": "^2.0.6",
     "grapesjs-preset-webpage": "^1.0.3",
+    "grapick": "^0.1.13",
     "html-to-docx": "^1.8.0",
     "html-to-image": "^1.11.13",
     "html2pdf.js": "^0.12.1",

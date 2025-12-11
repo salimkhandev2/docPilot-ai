@@ -227,14 +227,14 @@ Generate the modified HTML now:`;
 
       try {
         const response = await client.models.generateContentStream({
-          model: "gemini-2.5-flash",
+          model: "gemini-2.5-flash-lite",
           contents: contents,
           config: {
             responseModalities: ["TEXT"],
             temperature: 0.7,
             topP: 0.95,
             topK: 40,
-            maxOutputTokens: 8192,
+            maxOutputTokens: 16384,
             thinkingConfig: {
               thinkingBudget: 0,
             },
