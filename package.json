@@ -37,6 +37,7 @@
     "mongodb": "^6.21.0",
     "mongoose": "^8.19.4",
     "next": "^14.2.20",
+    "openai": "^6.10.0",
     "pdf2docx": "^0.0.0",
     "pdfjs-dist": "^5.4.296",
     "puppeteer": "^23.10.4",

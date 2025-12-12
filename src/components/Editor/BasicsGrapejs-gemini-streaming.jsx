@@ -36,6 +36,9 @@ export default function GrapesEditor() {
         scripts: [
           'https://cdn.tailwindcss.com',
         ],
+        styles: [
+          'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
+        ],
       },
       components: defaultHtml,
     });
@@ -89,50 +92,6 @@ export default function GrapesEditor() {
       });
 
       console.log("Selected component HTML with inline styles (for AI):", htmlWithInline);
-    });
-
-    //----------------------------------------------------------------------
-    // AUTO-APPEND !important TO ONLY THE CHANGED PROPERTY
-    //----------------------------------------------------------------------
-    editor.on("style:property:update", ({ property }) => {
-      // Get the selected component
-      const selected = editor.getSelected();
-      if (!selected) return;
-
-      // Get the property name that was changed
-      const propertyName = property?.getName?.() || property?.get?.('property');
-      if (!propertyName) return;
-
-      // Get the component's ID (GrapesJS auto-generates this with componentFirst: true)
-      const componentId = selected.getId();
-      if (!componentId) return;
-
-      // Get CssComposer
-      const cssComposer = editor.CssComposer;
-
-      // Find the CSS rule for this component (by ID selector)
-      const selector = `#${componentId}`;
-      const rule = cssComposer.getRule(selector);
-
-      if (rule) {
-        // Get current important properties (could be true, array, or undefined)
-        let currentImportant = rule.get('important') || [];
-
-        // If it was set to true (all properties), convert to array of all current properties
-        if (currentImportant === true) {
-          const styles = rule.getStyle();
-          currentImportant = Object.keys(styles);
-        }
-
-        // Add the new property to the important list if not already there
-        if (!currentImportant.includes(propertyName)) {
-          currentImportant.push(propertyName);
-        }
-
-        // Set !important only on the properties in the array
-        rule.set('important', currentImportant);
-        console.log(`🎨 Applied !important to property: ${propertyName} (selector: ${selector})`);
-      }
     });
 
     //----------------------------------------------------------------------

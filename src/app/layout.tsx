@@ -29,9 +29,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable}`}
       >
         <AuthProvider>
-        <AIProvider>
-          {children}
-        </AIProvider>
+          <AIProvider>
+            {children}
+          </AIProvider>
         </AuthProvider>
       </body>
     </html>
