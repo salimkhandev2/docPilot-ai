@@ -92,6 +92,50 @@ export default function GrapesEditor() {
     });
 
     //----------------------------------------------------------------------
+    // AUTO-APPEND !important TO ONLY THE CHANGED PROPERTY
+    //----------------------------------------------------------------------
+    editor.on("style:property:update", ({ property }) => {
+      // Get the selected component
+      const selected = editor.getSelected();
+      if (!selected) return;
+
+      // Get the property name that was changed
+      const propertyName = property?.getName?.() || property?.get?.('property');
+      if (!propertyName) return;
+
+      // Get the component's ID (GrapesJS auto-generates this with componentFirst: true)
+      const componentId = selected.getId();
+      if (!componentId) return;
+
+      // Get CssComposer
+      const cssComposer = editor.CssComposer;
+
+      // Find the CSS rule for this component (by ID selector)
+      const selector = `#${componentId}`;
+      const rule = cssComposer.getRule(selector);
+
+      if (rule) {
+        // Get current important properties (could be true, array, or undefined)
+        let currentImportant = rule.get('important') || [];
+
+        // If it was set to true (all properties), convert to array of all current properties
+        if (currentImportant === true) {
+          const styles = rule.getStyle();
+          currentImportant = Object.keys(styles);
+        }
+
+        // Add the new property to the important list if not already there
+        if (!currentImportant.includes(propertyName)) {
+          currentImportant.push(propertyName);
+        }
+
+        // Set !important only on the properties in the array
+        rule.set('important', currentImportant);
+        console.log(`🎨 Applied !important to property: ${propertyName} (selector: ${selector})`);
+      }
+    });
+
+    //----------------------------------------------------------------------
     // ADD AI REGENERATE BUTTON
     //----------------------------------------------------------------------
     editor.Panels.addButton('options', {
@@ -181,16 +225,16 @@ export default function GrapesEditor() {
                 // Helper: Schedule update on next animation frame (syncs with browser repaint)
                 const scheduleUpdate = () => {
                   if (pendingUpdate) return; // Already scheduled
-                  
+
                   pendingUpdate = true;
                   requestAnimationFrame(() => {
                     pendingUpdate = false;
-                    
+
                     // Skip if HTML hasn't changed since last update
                     if (!latestHTML || latestHTML === lastProcessedHTML) return;
-                    
+
                     lastProcessedHTML = latestHTML;
-                    
+
                     // Update component (GrapesJS handles HTML parsing internally)
                     try {
                       if (!streamingComponent) {
