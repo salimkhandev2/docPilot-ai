@@ -25,3 +25,143 @@ css
 
 
 dont use it while genereating code and targeting the tags via selectors
+
+FOR BOOKS
+You are a master book designer at Penguin Classics with 30 years of experience creating limited-edition hardcovers.
+
+Create a SINGLE, completely STATIC HTML file for a literary fiction novel titled  
+“Salt & Marrow” by Juno Reyes
+
+The file must simulate a complete physical book in exact A4 format (210 × 297 mm) when printed or viewed at 100% zoom, with vertical scrolling to turn pages.
+
+Structure (in exact order, all visible when scrolling):
+
+1. COVER PAGE (full-bleed stylish design)
+   - Luxurious dark textured linen background
+   - Large elegant title in gold/cream serif (Playfair Display or EB Garamond)
+   - Author name below in smaller caps
+   - Subtle central ornament or sigil (SVG or CSS shape)
+   - Minimalist, expensive aesthetic — no clutter
+
+2. BLANK PAGE (pure cream paper texture — like inside front cover)
+
+3. TITLE PAGE
+  rices - Centered: full book title, author name, publisher line "First Edition 2025"
+
+4. TABLE OF CONTENTS
+   - Elegant layout with chapter numbers left, dotted leaders, chapter titles right-aligned
+   - Chapters listed as:
+     Chapter I    The Inheritance ...................... 5
+     Chapter II   Bone House .......................... 17
+     Chapter III  The Salt Cellar ..................... 31
+     etc. (continue to at least Chapter V)
+
+5–20. BOOK INTERIOR PAGES (16 text pages total)
+   - Each "page" is exactly 297mm tall × 210mm wide
+   - Stacked vertically with no visible borders
+   - Cream paper texture background + subtle grain
+   - Margins: top 25mm, bottom 30mm, left/right 25mm, gutter simulation via centered text block (max 140mm wide)
+   - Body text: EB Garamond 11pt equivalent, leading ~1.6, fully justified, hyphens-auto
+   - First paragraph of each chapter: no indent + 4-line drop cap
+   - Subsequent paragraphs: 0.5em first-line indent
+   - Running headers (top of each page, outside text block):
+       • Verso pages (even): Juno Reyes (left-aligned)
+       • Recto pages (odd): Salt & Marrow (right-aligned)
+   - Page numbers (folios): centered bottom, 15mm from edge, 9pt gray-600
+   - No page number on cover, blank pages, title page, or table of contents
+   - Chapter openings start on recto (odd) pages only
+   - Scene breaks: centered ***
+
+Content (write real literary fiction, no lorem ipsum):
+- Chapter I “The Inheritance” (~900 words)
+- Chapter II “Bone House” (~900 words)
+- Begin Chapter III “The Salt Cellar” (~300 words to end mid-page)
+- Total ~2100 words of publishable prose about a woman uncovering her family’s occult history through bones hidden in an old coastal house
+
+Final page: colophon centered at bottom
+“First edition, 2025 • Typeset in EB Garamond • Printed on archival paper”
+
+Tech restrictions:
+- ONLY Tailwind CSS via CDN
+- One <script> block allowed for Tailwind config (fonts + hyphenation only)
+- Google Fonts: EB Garamond, Playfair Display
+- NO JavaScript
+- NO animation, hover, transition, interactivity
+- NO custom CSS outside Tailwind classes
+
+Rules (break any = instant failure):
+- Exact A4 page dimensions (210mm × 297mm per page block)
+- Must look indistinguishable from a real $45 hardcover when printed on A4
+- Single HTML file
+- 100% Tailwind classes only
+- Output ONLY the complete code. No fences. No explanation. No extra text.
+
+Deliver the most beautiful, authentic digital hardcover ever made with Tailwind.
+
+For RESUME
+You are a senior graphic designer at Pentagram specializing in luxury executive branding and high-end resume design for C-suite leaders and acclaimed professionals.
+
+Create a SINGLE, completely STATIC HTML file for a one-page, slightly fancy professional resume of Dr. Alexander Chen, a 38-year-old cardiothoracic surgeon and medical researcher.
+
+The file must be in exact A4 format (210 × 297 mm) when printed or viewed at 100% zoom — designed as a single elegant vertical page optimized for printing.
+
+Design aesthetic: Refined luxury — timeless, understated elegance with subtle sophistication (think Hermès meets medical precision).
+
+Key fancy elements (integrate tastefully):
+- Ivory/cream heavy paper texture background
+- Subtle metallic gold or surgical steel-blue accent line (thin 1px) running vertically on the left margin or as section separators
+- Name header in large, elegant Playfair Display with subtle letter-spacing and possible gold/steel color
+- Section titles in small caps with metallic accent
+- CRUCIAL: Main content area must have very subtle, continuous horizontal baseline rules (thin metallic-gold or light sepia lines, 0.5px, opacity 15–20%)
+  • One unbroken horizontal line per text baseline, spaced precisely at body leading (~7.5–8mm)
+  • All body text sits perfectly ON the lines (baseline-aligned), like premium lined stationery from Smythson or Montblanc
+  • Achieve purely with Tailwind repeating-linear-gradient in config
+- Optional: tiny decorative fleuron or medical caduceus-inspired ornament (SVG inline) centered above or below name
+
+Structure (clean, balanced hierarchy):
+
+1. HEADER
+   - Full name large and prominent (Playfair Display 40–44pt)
+   - Subtitle line: “Cardiothoracic Surgeon • Researcher • Innovator”
+   - Contact details in refined horizontal bar (phone • email • LinkedIn • London, UK)
+
+2. PROFESSIONAL SUMMARY
+   - 4–6 lines of eloquent, confident prose
+
+3. EXPERIENCE (reverse chronological)
+   - Job title bold, institution italic, dates right-aligned
+   - 4–5 achievement-focused bullets per role
+
+4. EDUCATION & QUALIFICATIONS
+
+5. SELECTED PUBLICATIONS
+   - 4–5 Harvard-style entries
+
+6. SKILLS & CERTIFICATIONS
+   - Elegant two-column or grid layout
+
+Content (real, impressive, professional — no lorem ipsum):
+- Current: Consultant Cardiothoracic Surgeon, St. Mary’s Hospital, London (2020–Present)
+- Previous: Fellow in Robotic Cardiac Surgery, Cleveland Clinic (2017–2020)
+- Education: MD/PhD Harvard Medical School (2017), MB BChir University of Cambridge (2010)
+- Key achievements: Pioneered minimally invasive technique published in The Lancet, 30+ publications, fluent in English/Mandarin
+- Certifications: FRCS (C-Th), board-certified, advanced robotic surgery credential
+
+Tech restrictions:
+- ONLY Tailwind CSS via CDN
+- One <script> block allowed for Tailwind config (fonts, hyphenation, ruled lines pattern, custom colors)
+- Google Fonts: Playfair Display (headings), EB Garamond or Cormorant Garamond (body), Inter (sans accents)
+- NO JavaScript
+- NO animation, hover, transition, interactivity
+- NO custom CSS outside Tailwind classes or config
+
+Rules (break any = failure):
+- Exact A4 dimensions (210mm × 297mm container)
+- Must fit elegantly on one A4 page with generous whitespace
+- Horizontal baseline rules MUST be continuous, subtle, and text perfectly aligned on them
+- Must look like a £500 bespoke executive resume when printed on cotton paper
+- Single HTML file
+- 100% Tailwind only
+- Output ONLY the complete code. No fences. No explanation. No extra text.
+
+Deliver the most refined, slightly fancy professional resume ever crafted with pure Tailwind.

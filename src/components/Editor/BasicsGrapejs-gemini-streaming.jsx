@@ -6,10 +6,33 @@ import { convertComponentToInlineCSS } from "@/utils/cssToInline";
 import "grapesjs/dist/css/grapes.min.css";
 import { useEffect, useRef, useState } from "react";
 
+// OpenRouter available models
+const OPENROUTER_MODELS = [
+  "z-ai/glm-4.5-air:free",
+  "arcee-ai/trinity-mini:free",
+  "kwaipilot/kat-coder-pro:free",
+  "tngtech/deepseek-r1t2-chimera:free",
+  "mistralai/devstral-2512:free",
+  "nvidia/nemotron-nano-12b-v2-vl:free",
+  "amazon/nova-2-lite-v1:free",
+  "openai/gpt-oss-20b:free",
+  "google/gemma-3-27b-it:free",
+  "meta-llama/llama-3.3-70b-instruct:free",
+  "nex-agi/deepseek-v3.1-nex-n1:free",
+  "alibaba/tongyi-deepresearch-30b-a3b:free",
+  "nousresearch/hermes-3-llama-3.1-405b:free",
+  "nvidia/nemotron-nano-9b-v2:free",
+  "mistralai/mistral-small-3.1-24b-instruct:free",
+  "qwen/qwen3-4b:free",
+  "google/gemma-3-12b-it:free",
+  "google/gemma-3n-e2b-it:free",
+  "google/gemma-3-4b-it:free"
+];
+
 export default function GrapesEditor() {
   const editorRef = useRef(null);
   const [showModal, setShowModal] = useState(false);
-  const [modalData, setModalData] = useState({ userRequest: '', imageFile: null, imageUrl: '', imagePreview: null, onSubmit: null, onCancel: null });
+  const [modalData, setModalData] = useState({ userRequest: '', imageFile: null, imageUrl: '', imagePreview: null, aiProvider: 'gemini', openRouterModel: OPENROUTER_MODELS[0], onSubmit: null, onCancel: null });
   const modalCallbacksRef = useRef({ setShowModal, setModalData });
 
   // Update ref when state setters change
@@ -30,7 +53,8 @@ export default function GrapesEditor() {
         componentFirst: true,     // Always prioritize component selection over class selection
         escapeName: name => name, // Prevent GrapesJS from rewriting class names
       },
-      // add tailwind css here
+      // add tailwind css hered
+
 
       canvas: {
         scripts: [
@@ -131,7 +155,9 @@ export default function GrapesEditor() {
             imageFile: null,
             imageUrl: '',
             imagePreview: null,
-            onSubmit: async (userRequest, imageFile, imageUrl) => {
+            aiProvider: 'openrouter',
+            openRouterModel: OPENROUTER_MODELS[0], // Default to first model
+            onSubmit: async (userRequest, imageFile, imageUrl, aiProvider, openRouterModel) => {
               if (!userRequest.trim()) {
                 alert('Please enter a request');
                 return;
@@ -211,8 +237,9 @@ export default function GrapesEditor() {
                   });
                 };
 
-                // Stream from Gemini AI
-                const cleanedHTML = await streamGeminiAI(originalHTML, userRequest, imageFile, imageUrl, (chunk, isComplete) => {
+                // Stream from selected AI provider
+                const streamFn = aiProvider === 'openrouter' ? streamOpenRouterAI : streamGeminiAI;
+                const cleanedHTML = await streamFn(originalHTML, userRequest, imageFile, imageUrl, openRouterModel, (chunk, isComplete) => {
                   accumulatedHTML += chunk;
 
                   // Clean accumulated HTML
@@ -282,9 +309,50 @@ export default function GrapesEditor() {
               <form onSubmit={(e) => {
                 e.preventDefault();
                 if (modalData.onSubmit) {
-                  modalData.onSubmit(modalData.userRequest, modalData.imageFile, modalData.imageUrl);
+                  modalData.onSubmit(modalData.userRequest, modalData.imageFile, modalData.imageUrl, modalData.aiProvider, modalData.openRouterModel);
                 }
               }}>
+                {/* AI Provider Selection */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    AI Provider
+                  </label>
+                  <select
+                    value={modalData.aiProvider}
+                    onChange={(e) => setModalData({ ...modalData, aiProvider: e.target.value, imageFile: null, imageUrl: '', imagePreview: null })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm
+                      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="gemini">🔮 Gemini (supports images)</option>
+                    <option value="openrouter">🌐 OpenRouter (text only)</option>
+                  </select>
+                </div>
+
+                {/* OpenRouter Model Selection - Only show for OpenRouter */}
+                {modalData.aiProvider === 'openrouter' && (
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      OpenRouter Model
+                    </label>
+                    <select
+                      value={modalData.openRouterModel}
+                      onChange={(e) => setModalData({ ...modalData, openRouterModel: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm
+                        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                        font-mono text-sm"
+                    >
+                      {OPENROUTER_MODELS.map((model) => (
+                        <option key={model} value={model}>
+                          {model}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="mt-1 text-xs text-gray-500">
+                      {OPENROUTER_MODELS.length} free models available
+                    </p>
+                  </div>
+                )}
+
                 {/* Text Input */}
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -301,93 +369,109 @@ export default function GrapesEditor() {
                   />
                 </div>
 
-                {/* Image URL Input */}
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Image URL (Optional)
-                  </label>
-                  <input
-                    type="url"
-                    value={modalData.imageUrl}
-                    onChange={(e) => {
-                      const url = e.target.value;
-                      setModalData({
-                        ...modalData,
-                        imageUrl: url,
-                        imageFile: null, // Clear file if URL is entered
-                        imagePreview: url || null
-                      });
-                    }}
-                    placeholder="https://example.com/image.jpg"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm
+                {/* Image URL Input - Only show for Gemini */}
+                {modalData.aiProvider === 'gemini' && (
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Image URL (Optional)
+                    </label>
+                    <input
+                      type="url"
+                      value={modalData.imageUrl}
+                      onChange={(e) => {
+                        const url = e.target.value;
+                        setModalData({
+                          ...modalData,
+                          imageUrl: url,
+                          imageFile: null, // Clear file if URL is entered
+                          imagePreview: url || null
+                        });
+                      }}
+                      placeholder="https://example.com/image.jpg"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm
                       focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                  <p className="mt-1 text-xs text-gray-500">
-                    Enter an image URL or upload a file below
-                  </p>
-                </div>
+                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                      Enter an image URL or upload a file below
+                    </p>
+                  </div>
+                )}
 
-                {/* Divider */}
-                <div className="mb-4 flex items-center">
-                  <div className="flex-1 border-t border-gray-300"></div>
-                  <span className="px-2 text-sm text-gray-500">OR</span>
-                  <div className="flex-1 border-t border-gray-300"></div>
-                </div>
+                {/* Divider - Only show for Gemini */}
+                {modalData.aiProvider === 'gemini' && (
+                  <div className="mb-4 flex items-center">
+                    <div className="flex-1 border-t border-gray-300"></div>
+                    <span className="px-2 text-sm text-gray-500">OR</span>
+                    <div className="flex-1 border-t border-gray-300"></div>
+                  </div>
+                )}
 
-                {/* Image Upload */}
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Upload Image (Optional)
-                  </label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        if (!file.type.startsWith('image/')) {
-                          alert('Please select an image file');
-                          return;
+                {/* Image Upload - Only show for Gemini */}
+                {modalData.aiProvider === 'gemini' && (
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Upload Image (Optional)
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          if (!file.type.startsWith('image/')) {
+                            alert('Please select an image file');
+                            return;
+                          }
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setModalData({
+                              ...modalData,
+                              imageFile: file,
+                              imageUrl: '', // Clear URL if file is uploaded
+                              imagePreview: reader.result
+                            });
+                          };
+                          reader.readAsDataURL(file);
                         }
-                        const reader = new FileReader();
-                        reader.onloadend = () => {
-                          setModalData({
-                            ...modalData,
-                            imageFile: file,
-                            imageUrl: '', // Clear URL if file is uploaded
-                            imagePreview: reader.result
-                          });
-                        };
-                        reader.readAsDataURL(file);
-                      }
-                    }}
-                    className="block w-full text-sm text-gray-500
+                      }}
+                      className="block w-full text-sm text-gray-500
                       file:mr-4 file:py-2 file:px-4
                       file:rounded-full file:border-0
                       file:text-sm file:font-semibold
                       file:bg-blue-50 file:text-blue-700
                       hover:file:bg-blue-100
                       cursor-pointer"
-                  />
+                    />
 
-                  {/* Image Preview */}
-                  {modalData.imagePreview && (
-                    <div className="mt-4">
-                      <img
-                        src={modalData.imagePreview}
-                        alt="Preview"
-                        className="max-w-full h-auto max-h-48 rounded-lg border border-gray-300"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setModalData({ ...modalData, imageFile: null, imageUrl: '', imagePreview: null })}
-                        className="mt-2 text-sm text-red-600 hover:text-red-800"
-                      >
-                        Remove Image
-                      </button>
-                    </div>
-                  )}
-                </div>
+                    {/* Image Preview */}
+                    {modalData.imagePreview && (
+                      <div className="mt-4">
+                        <img
+                          src={modalData.imagePreview}
+                          alt="Preview"
+                          className="max-w-full h-auto max-h-48 rounded-lg border border-gray-300"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setModalData({ ...modalData, imageFile: null, imageUrl: '', imagePreview: null })}
+                          className="mt-2 text-sm text-red-600 hover:text-red-800"
+                        >
+                          Remove Image
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* OpenRouter Info */}
+                {modalData.aiProvider === 'openrouter' && (
+                  <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="text-sm text-blue-700">
+                      🌐 <strong>OpenRouter</strong> uses free models for text-based HTML generation.
+                      Image support is not available with this provider.
+                    </p>
+                  </div>
+                )}
 
                 {/* Buttons */}
                 <div className="flex gap-4 justify-end">
@@ -425,7 +509,7 @@ export default function GrapesEditor() {
 //======================================================================
 // GEMINI AI STREAMING (via backend)
 //======================================================================
-async function streamGeminiAI(originalHTML, userRequest, imageFile, imageUrl, onChunk) {
+async function streamGeminiAI(originalHTML, userRequest, imageFile, imageUrl, model, onChunk) {
   try {
     console.log("🚀 Starting Gemini AI stream via backend...");
 
@@ -537,6 +621,88 @@ async function streamGeminiAI(originalHTML, userRequest, imageFile, imageUrl, on
   } catch (error) {
     console.error("❌ Backend AI Stream Error:", error);
     throw new Error(`AI streaming failed: ${error.message}`);
+  }
+}
+
+//======================================================================
+// OPENROUTER AI STREAMING (via backend)
+//======================================================================
+async function streamOpenRouterAI(originalHTML, userRequest, imageFile, imageUrl, model, onChunk) {
+  try {
+    console.log("🚀 Starting OpenRouter AI stream via backend...");
+    console.log("🤖 Using model:", model);
+
+    // OpenRouter only supports text, no image uploads
+    const response = await fetch('/api/editor/openrouter-regenerate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        originalHTML,
+        userRequest,
+        model, // Send selected model to backend
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+    }
+
+    if (!response.body) {
+      throw new Error('Response body is null');
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let fullHTML = '';
+    let chunkCount = 0;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(line.slice(6));
+
+            if (data.error) {
+              throw new Error(data.error);
+            }
+
+            if (data.chunk !== undefined) {
+              chunkCount++;
+              fullHTML += data.chunk;
+
+              if (onChunk) {
+                onChunk(data.chunk, data.isComplete || false);
+              }
+
+              if (data.isComplete) {
+                console.log(`✅ OpenRouter stream complete: ${chunkCount} chunks, ${fullHTML.length} total chars`);
+              }
+            }
+          } catch (parseError) {
+            console.warn('Failed to parse SSE data:', parseError);
+          }
+        }
+      }
+    }
+
+    // Clean and return the accumulated HTML
+    fullHTML = cleanAIResponse(fullHTML);
+    return fullHTML;
+
+  } catch (error) {
+    console.error("❌ OpenRouter AI Stream Error:", error);
+    throw new Error(`OpenRouter streaming failed: ${error.message}`);
   }
 }
 
