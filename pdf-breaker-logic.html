@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Page Break - Dynamic Calibration</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* Cross-Browser CSS Reset and Normalization */
+
+        /* Universal box-sizing with inheritance pattern */
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Root font size for consistent rem calculations */
+        html {
+            font-size: 16px;
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+            text-size-adjust: 100%;
+        }
+
+        /* Body with comprehensive font smoothing */
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+        background: black;
+            padding: 0px;
+            position: relative;
+
+
+            /* Cross-browser font smoothing */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+
+            /* Font feature settings for consistency */
+            font-feature-settings: "kern" 1;
+            font-kerning: normal;
+
+            /* Prevent font scaling in landscape */
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+        }
+
+        /* Content container with fixed dimensions */
+        .content {
+            width: 210mm;
+            max-width: 210mm;
+            min-width: 210mm;
+            margin: 0 auto;
+            background: white;
+            padding: 0px;
+            position: relative;
+            display: flow-root;
+            overflow-anchor: none;
+        }
+
+        /* Page break indicator with vendor prefixes */
+        .page-break-line {
+            position: absolute;
+            left: 0;
+            right: 0;
+            width: 100%;
+            height: 3px;
+            background: repeating-linear-gradient(90deg,
+                    #ff0000 0px,
+                    #ff0000 20px,
+                    transparent 20px,
+                    transparent 40px);
+            background: -webkit-repeating-linear-gradient(90deg,
+                    #ff0000 0px,
+                    #ff0000 20px,
+                    transparent 20px,
+                    transparent 40px);
+            background: -moz-repeating-linear-gradient(90deg,
+                    #ff0000 0px,
+                    #ff0000 20px,
+                    transparent 20px,
+                    transparent 40px);
+            z-index: 9999;
+            pointer-events: none;
+        }
+
+        .page-break-line::after {
+            content: attr(data-info);
+            position: absolute;
+            right: 20px;
+            top: -22px;
+            background: #ff0000;
+            color: white;
+            padding: 6px 12px;
+            font-size: 11px;
+            font-weight: bold;
+            border-radius: 3px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            white-space: nowrap;
+        }
+
+
+
+
+        /* Paragraph normalization */
+
+
+        /* Button reset for cross-browser consistency */
+        button {
+            font-family: inherit;
+            font-size: 100%;
+            line-height: 1.15;
+            margin: 0;
+            padding: 0;
+            border: none;
+            background: none;
+            cursor: pointer;
+
+            /* Remove default appearance */
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+
+            /* Remove tap highlight on mobile */
+            -webkit-tap-highlight-color: transparent;
+
+            /* Prevent text selection */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        /* Input normalization */
+        input {
+            font-family: inherit;
+            font-size: 100%;
+            line-height: 1.15;
+            margin: 0;
+
+            /* Remove default appearance */
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+
+        /* Controls panel */
+        .controls {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            z-index: 10000;
+            max-width: 280px;
+        }
+
+
+        /* Calibration info panel */
+        .calibration-info {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 5px;
+            font-size: 11px;
+            font-family: 'Courier New', Courier, monospace;
+            z-index: 10000;
+            max-width: 450px;
+            line-height: 1.5;
+        }
+
+
+
+        /* Print styles */
+        @media print {
+            body {
+                background: black;
+                padding: 0;
+            }
+
+
+
+            .content {
+                width: 8.27in;
+                max-width: 8.27in;
+                min-width: 8.27in;
+                margin: 0 auto;
+                background: white;
+                /* padding: 0px; */
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+                position: relative;
+                display: flow-root;
+
+                /* Prevent content shifting */
+                overflow-anchor: none;
+            }
+
+        }
+
+        /* Print page configuration */
+        @page {
+            size: A4;
+
+        }
+    </style>
+</head>
+
+<body>
+    <div class="controls">
+
+        <div style="margin-bottom: 10px;">
+            <strong>Browser: <span id="browser-name">Detecting...</span></strong>
+        </div>
+        <div style="margin-bottom: 10px; font-size: 12px; color: #666;">
+            Content: <strong><span id="content-height-display">-</span>px</strong>
+        </div>
+        <div style="margin-bottom: 10px; font-size: 12px;">
+            <label style="display: block; margin-bottom: 3px;"><strong>PDF Page Height (px):</strong></label>
+            <input type="number" id="page-height-input" value="1123" step="1" style="width: 100%;">
+            <div style="font-size: 10px; color: #999; margin-top: 2px;">
+                Enter height from actual PDF pages
+            </div>
+        </div>
+        <button onclick="applyPageHeight()" class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
+            style="width: 100%;">
+            Apply Custom Height
+        </button>
+        <button id="download-pdf"
+            class="mt-2 px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-bold"
+            style="width: 100%; border: none; cursor: pointer;">
+            Download PDF
+        </button>
+        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #ddd; font-size: 10px; color: #666;">
+            <strong>Instructions:</strong><br>
+            1. Generate PDF<br>
+            2. Measure actual page height in PDF<br>
+            3. Enter value above and click Apply
+        </div>
+    </div>
+
+
+    <div class="calibration-info" id="calibration-info">
+        Measuring page layout...
+    </div>
+
+    <div class="content" id="content">
+  
+    </div>
+
+    <script>
+        // Store calibration data
+        let calibrationData = {
+            browser: null,
+            contentHeight: null,
+            pdfPageHeight: null,
+            numPages: null
+        };
+
+        function detectBrowser() {
+            const ua = navigator.userAgent;
+            if (ua.includes('Edg/')) return 'Edge';
+            if (ua.includes('Chrome') && !ua.includes('Edg')) return 'Chrome';
+            if (ua.includes('Firefox')) return 'Firefox';
+            if (ua.includes('Safari') && !ua.includes('Chrome')) return 'Safari';
+            return 'Unknown';
+        }
+
+        function loadSavedCalibration() {
+            const browser = detectBrowser();
+            const saved = localStorage.getItem(`pagebreak-cal-${browser}`);
+            if (saved) {
+                const data = JSON.parse(saved);
+                document.getElementById('page-height-input').value = data.pageHeight;
+                return data.pageHeight;
+            }
+            return null;
+        }
+
+        function saveCalibration(pageHeight) {
+            const browser = detectBrowser();
+            localStorage.setItem(`pagebreak-cal-${browser}`, JSON.stringify({
+                pageHeight: pageHeight,
+                timestamp: Date.now()
+            }));
+        }
+
+        function applyPageHeight() {
+            const input = document.getElementById('page-height-input');
+            const pageHeight = parseFloat(input.value);
+
+            if (!pageHeight || pageHeight <= 0) {
+                alert('Please enter a valid page height');
+                return;
+            }
+
+            saveCalibration(pageHeight);
+            addPageBreakIndicators();
+        }
+
+        function addPageBreakIndicators() {
+            const content = document.getElementById('content');
+
+            // Remove old indicators
+            content.querySelectorAll('.page-break-line').forEach(el => el.remove());
+
+            // Measure actual content height
+            const contentHeight = content.scrollHeight;
+            document.getElementById('content-height-display').textContent = contentHeight;
+
+            // Detect browser
+            const browser = detectBrowser();
+            document.getElementById('browser-name').textContent = browser;
+
+            // Get page height from input
+            const pageHeightInput = document.getElementById('page-height-input');
+            const pageHeight = parseFloat(pageHeightInput.value);
+
+            if (!pageHeight || pageHeight <= 0) {
+                document.getElementById('calibration-info').innerHTML = `
+                    <strong style="color: #ff0;">⚠ Setup Required</strong><br><br>
+                    <strong>Browser:</strong> ${browser}<br>
+                    <strong>Content Height:</strong> ${contentHeight}px<br><br>
+                    <strong>Why browsers differ:</strong><br>
+                    • Different font rendering engines<br>
+                    • Text justification algorithms vary<br>
+                    • Subpixel rounding differences<br><br>
+                    <strong>To calibrate:</strong><br>
+                    1. Click "Download PDF" button<br>
+                    2. Open PDF and measure page height<br>
+                    3. Enter value in control panel<br>
+                    4. Click "Apply Custom Height"
+                `;
+                return;
+            }
+
+            const numPages = Math.ceil(contentHeight / pageHeight);
+
+            // Store calibration data
+            calibrationData = {
+                browser,
+                contentHeight,
+                pdfPageHeight: pageHeight,
+                numPages
+            };
+
+            // Calculate statistics
+            const pagesRatio = contentHeight / pageHeight;
+            const avgContentPerPage = contentHeight / numPages;
+
+            // Update info display
+            const info = document.getElementById('calibration-info');
+            info.innerHTML = `
+                <strong style="color: #0f0;">✓ Calibrated for ${browser}</strong><br><br>
+                <strong>Browser Rendering:</strong><br>
+                Content Height: ${contentHeight}px<br>
+                PDF Page Height: ${pageHeight}px<br>
+                Pages Needed: ${pagesRatio.toFixed(2)} (${numPages} actual)<br><br>
+                <strong>Page Distribution:</strong><br>
+                Avg Content/Page: ${avgContentPerPage.toFixed(0)}px<br>
+                Last Page: ${(contentHeight % pageHeight).toFixed(0)}px<br><br>
+                <em style="color: #0ff;">Page breaks will match PDF output</em>
+            `;
+
+            // Add visual indicators
+            for (let i = 1; i < numPages; i++) {
+                const line = document.createElement('div');
+                line.className = 'page-break-line';
+                line.dataset.info = `PAGE BREAK ${i} / ${numPages - 1} @ ${(i * pageHeight - 20).toFixed(0)}px`;
+                line.style.top = (i * pageHeight) + 'px';
+                content.appendChild(line);
+            }
+        }
+
+        window.addEventListener('load', () => {
+            // Load saved calibration for this browser
+            loadSavedCalibration();
+            setTimeout(addPageBreakIndicators, 300);
+        });
+
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(addPageBreakIndicators, 300);
+        });
+
+        document.getElementById('download-pdf').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/generate-pdf', {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/pdf' }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`PDF generation failed: ${response.status}`);
+                }
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'output.pdf';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+
+                // Show reminder to calibrate if not yet done
+                if (!calibrationData.pdfPageHeight) {
+                    setTimeout(() => {
+                        alert('PDF downloaded!\n\nNext step: Measure the page height in your PDF viewer and enter it in the control panel on the left.');
+                    }, 500);
+                }
+            } catch (err) {
+                console.error('Error downloading PDF:', err);
+                alert('Failed to download PDF: ' + err.message);
+            }
+        });
+
+        // Allow Enter key to apply height
+        document.getElementById('page-height-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                applyPageHeight();
+            }
+        });
+    </script>
+</body>
+
+</html>

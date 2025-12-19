@@ -1,246 +1,62 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>IP → City Location — Example</title>
+  <meta charset="UTF-8">
+  <title>Paged.js PDF Preview</title>
+
+  <!-- Paged.js -->
+  <script src="https://unpkg.com/pagedjs/dist/paged.polyfill.js"></script>
+
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
+      font-family: Arial, sans-serif;
     }
 
-    .card {
+    @page {
+      size: A4;
+      margin: 20mm;
+    }
+
+    .pagedjs_page {
+      margin: 20px auto;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
       background: white;
-      border-radius: 12px;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-      padding: 32px;
-      max-width: 600px;
-      width: 100%;
-      max-height: 90vh;
-      overflow-y: auto;
+      padding: 10mm;
+      width: 210mm;
+      min-height: 297mm;
     }
 
     h1 {
-      color: #333;
-      margin-bottom: 24px;
-      font-size: 24px;
-      font-weight: 600;
+      page-break-before: always;
     }
 
-    #status {
-      color: #666;
+    .box {
+      height: 150px;
+      border: 2px solid black;
       margin-bottom: 20px;
-      font-size: 16px;
-    }
-
-    .info {
-      margin: 24px 0;
-    }
-
-    
-    #fullLocation {
-      font-weight: 500;
-      color: #667eea;
-      font-size: 16px;
-    }
-
-    .actions {
-      display: flex;
-      gap: 12px;
-      margin-top: 24px;
-      flex-wrap: wrap;
-    }
-
-
-    .error {
-      background: #fee;
-      color: #c33;
-      padding: 12px;
-      border-radius: 6px;
-      margin-top: 20px;
-      border: 1px solid #fcc;
-    }
-
-    .hidden {
-      display: none;
+      padding: 10px;
     }
   </style>
 </head>
+
 <body>
-  <main class="card">
-    <h1>Your Detailed Location</h1>
+  <div id="content">
+    <h1>Page One</h1>
+    <div class="box">Content block 1</div>
+    <div class="box">Content block 2</div>
 
-    <div id="status">Detecting location…</div>
-
-    <div id="info" class="info hidden">
-      <p><strong>IP Address:</strong> <span id="ip"></span></p>
-      <p><strong>Full Location:</strong> <span id="fullLocation"></span></p>
-      <p><strong>City:</strong> <span id="city"></span></p>
-      <p><strong>District/Area:</strong> <span id="district"></span></p>
-      <p><strong>Postal Code:</strong> <span id="postal"></span></p>
-      <p><strong>Region / State:</strong> <span id="region"></span></p>
-      <p><strong>Country:</strong> <span id="country"></span> (<span id="countryCode"></span>)</p>
-      <p><strong>Coordinates:</strong> <span id="coords"></span></p>
-      <p><strong>Latitude:</strong> <span id="latitude"></span></p>
-      <p><strong>Longitude:</strong> <span id="longitude"></span></p>
-      <p><strong>Timezone:</strong> <span id="timezone"></span></p>
-      <p><strong>ISP:</strong> <span id="isp"></span></p>
-      <p><strong>Organization:</strong> <span id="org"></span></p>
-      <p><strong>AS Number:</strong> <span id="as"></span></p>
-    </div>
-
-    <div class="actions">
-      <button id="refreshBtn">Refresh</button>
-      <button id="lookupBtn">Lookup specific IP...</button>
-    </div>
-
-    <div id="error" class="error hidden"></div>
-  </main>
+    <h1>Page Two</h1>
+    <div class="box">Lorem ipsum dolor, sit amet consectetur adipisicing elit. Facilis quae voluptatibus est adipisci facere sapiente autem dolore itaque assumenda iure aut non ea laudantium, enim provident sequi sint velit quia maiores modi perferendis aliquid aliquam. Ea, repellendus at perferendis, odit, obcaecati dolor eaque perspiciatis earum magnam itaque illo vitae aspernatur quas quasi eius facilis incidunt? Sunt ex eos ipsam in sit doloremque, assumenda incidunt possimus reiciendis quidem ratione tenetur ea quasi accusantium cumque totam animi quos eum. Corporis ratione eaque ducimus minima minus cum debitis reiciendis! Atque unde possimus quas magni minus pariatur officia quo! Expedita incidunt eveniet nesciunt dolore, beatae possimus commodi ad consequuntur? Veritatis minus praesentium fugiat temporibus quos asperiores accusamus animi porro similique unde libero, inventore, labore deserunt ad eos incidunt tempore quo sint assumenda. Itaque, laboriosam inventore! Iure porro facere tempore nihil necessitatibus totam corrupti ut perferendis sunt asperiores, iste, placeat quae laudantium esse aspernatur rem dolores consequatur odio doloribus. Sapiente, beatae maiores ipsam, modi voluptate ipsa distinctio unde tenetur sint necessitatibus facere quae quia animi reiciendis, voluptates illo aperiam. Sunt voluptas dolores numquam. Nam reprehenderit similique dolores eaque quos, quisquam laboriosam tempore veritatis, corporis harum minus quo sint quis eius soluta obcaecati suscipit! Nobis maxime totam repellendus asperiores provident! Impedit voluptatibus dolor minus praesentium exercitationem at laudantium ad commodi ea corporis, maxime fuga veritatis aspernatur aut eveniet dolorum, quaerat natus in optio temporibus architecto quae! Nisi inventore temporibus, reprehenderit, optio accusantium culpa non nam quasi dolore eum maiores cum doloribus maxime! Quia esse vero enim quod, nisi dolorum distinctio qui temporibus recusandae explicabo voluptas aperiam veniam? Iure et minima explicabo amet, similique placeat mollitia delectus quibusdam! Perspiciatis, tempore vel! Mollitia laborum totam cum consequuntur vel maiores voluptatem quibusdam, amet debitis nesciunt deleniti officiis autem iusto, ut similique delectus quos adipisci inventore blanditiis nemo? Veniam maxime iste, soluta corporis laudantium quae! Ipsa, dolores voluptates voluptatibus, tempora quam, harum explicabo nesciunt modi exercitationem vero nisi aliquid perspiciatis. Voluptas vitae, maiores officiis maxime excepturi, quo nisi, beatae fuga quae totam voluptates!</div>
+    <div class="box">Content block 4</div>
+  </div>
 
   <script>
-    // Wait for DOM to be ready
-    document.addEventListener('DOMContentLoaded', function() {
-      const statusEl = document.getElementById('status');
-      const infoEl = document.getElementById('info');
-      const errorEl = document.getElementById('error');
-      const refreshBtn = document.getElementById('refreshBtn');
-      const lookupBtn = document.getElementById('lookupBtn');
-
-      // Validate IP address format
-      function isValidIP(ip) {
-        const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
-        const ipv6Regex = /^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/;
-        return ipv4Regex.test(ip) || ipv6Regex.test(ip);
-      }
-
-      async function fetchIpLocation(ipAddress = null) {
-        // reset UI
-        if (statusEl) statusEl.textContent = 'Detecting location…';
-        if (errorEl) errorEl.classList.add('hidden');
-        if (infoEl) infoEl.classList.add('hidden');
-
-        try {
-          // Use ip-api.com which supports CORS and works with file:// protocol
-          const url = ipAddress 
-            ? `http://ip-api.com/json/${encodeURIComponent(ipAddress)}` 
-            : 'http://ip-api.com/json/';
-          
-          const res = await fetch(url, { 
-            cache: 'no-store',
-            mode: 'cors'
-          });
-          
-          if (!res.ok) {
-            throw new Error(`HTTP ${res.status}: Network response not ok`);
-          }
-
-          const data = await res.json();
-
-          // Check for API error response (ip-api.com returns status field)
-          if (data.status === 'fail') {
-            throw new Error(data.message || 'Failed to fetch location data');
-          }
-
-          // ip-api.com returns comprehensive location data
-          const ipEl = document.getElementById('ip');
-          const fullLocationEl = document.getElementById('fullLocation');
-          const cityEl = document.getElementById('city');
-          const districtEl = document.getElementById('district');
-          const postalEl = document.getElementById('postal');
-          const regionEl = document.getElementById('region');
-          const countryEl = document.getElementById('country');
-          const countryCodeEl = document.getElementById('countryCode');
-          const coordsEl = document.getElementById('coords');
-          const latitudeEl = document.getElementById('latitude');
-          const longitudeEl = document.getElementById('longitude');
-          const timezoneEl = document.getElementById('timezone');
-          const ispEl = document.getElementById('isp');
-          const orgEl = document.getElementById('org');
-          const asEl = document.getElementById('as');
-
-          // Build full location string
-          const locationParts = [];
-          if (data.city) locationParts.push(data.city);
-          if (data.regionName) locationParts.push(data.regionName);
-          if (data.country) locationParts.push(data.country);
-          const fullLocation = locationParts.length > 0 ? locationParts.join(', ') : '—';
-
-          if (ipEl) ipEl.textContent = data.query || '—';
-          if (fullLocationEl) fullLocationEl.textContent = fullLocation;
-          if (cityEl) cityEl.textContent = data.city || '—';
-          if (districtEl) districtEl.textContent = data.district || '—';
-          if (postalEl) postalEl.textContent = data.zip || data.postal || '—';
-          if (regionEl) regionEl.textContent = data.regionName || data.region || '—';
-          if (countryEl) countryEl.textContent = data.country || '—';
-          if (countryCodeEl) countryCodeEl.textContent = data.countryCode || '—';
-          if (coordsEl) {
-            coordsEl.textContent = (data.lat && data.lon) 
-              ? `${data.lat}, ${data.lon}` 
-              : '—';
-          }
-          if (latitudeEl) latitudeEl.textContent = data.lat ? data.lat.toFixed(6) : '—';
-          if (longitudeEl) longitudeEl.textContent = data.lon ? data.lon.toFixed(6) : '—';
-          if (timezoneEl) timezoneEl.textContent = data.timezone || '—';
-          if (ispEl) ispEl.textContent = data.isp || '—';
-          if (orgEl) orgEl.textContent = data.org || '—';
-          if (asEl) asEl.textContent = data.as || '—';
-
-          if (statusEl) statusEl.textContent = 'Location detected successfully!';
-          if (infoEl) infoEl.classList.remove('hidden');
-        } catch (err) {
-          console.error('Error fetching IP location:', err);
-          if (statusEl) statusEl.textContent = 'Could not detect location.';
-          if (errorEl) {
-            let errorMessage = 'Error: ' + err.message;
-            // Provide helpful error messages
-            if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
-              errorMessage = 'Error: Network error. Please check your internet connection.';
-            } else if (err.message.includes('429')) {
-              errorMessage = 'Error: Rate limit exceeded. Please wait a moment and try again.';
-            }
-            errorEl.textContent = errorMessage;
-            errorEl.classList.remove('hidden');
-          }
-        }
-      }
-
-      // load on start
-      fetchIpLocation();
-
-      // refresh button
-      if (refreshBtn) {
-        refreshBtn.addEventListener('click', () => fetchIpLocation());
-      }
-
-      // prompt user to lookup a specific IP (optional)
-      if (lookupBtn) {
-        lookupBtn.addEventListener('click', async () => {
-          const ip = prompt('Enter an IPv4 or IPv6 address (example: 8.8.8.8):');
-          if (!ip) return;
-          
-          // Validate IP format
-          if (!isValidIP(ip.trim())) {
-            alert('Invalid IP address format. Please enter a valid IPv4 or IPv6 address.');
-            return;
-          }
-          
-          // Lookup specific IP
-          await fetchIpLocation(ip.trim());
-        });
-      }
+    document.addEventListener("DOMContentLoaded", () => {
+      // Initialize Paged.js
+      PagedPolyfill.preview(document.getElementById("content"));
     });
   </script>
 </body>
+
 </html>
