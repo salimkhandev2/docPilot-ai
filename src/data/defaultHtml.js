@@ -9,22 +9,19 @@ export const defaultHtml = `
 
 <body style="
     margin: 0;
-    padding: 40px 0;
+    padding: 0;
     background: #e5e7eb;
-    min-height: 100vh;
 ">
 
     <div style="
         width: 210mm;
-        margin-left: auto;
-        margin-right: auto;
+        margin-left: 0;
+        margin-right: 0;
         background: white;
-        padding: 24px;
+        padding: 0;
         box-sizing: border-box;
     ">
-        Replace this with your content
-        <br /><br />
-        Add more content and this will grow vertically
+        Replace this with your response
     </div>
 
 </body>

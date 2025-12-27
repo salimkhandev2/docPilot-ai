@@ -3,7 +3,7 @@ import puppeteer from 'puppeteer';
 
 export async function POST(request: NextRequest) {
     try {
-        const { html, css, pageConfig } = await request.json();
+        const { html, css, pageConfig, scripts = [], styles = [] } = await request.json();
 
         if (!html || !css || !pageConfig) {
             return NextResponse.json(
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
 
         // Launch Puppeteer with consistent settings
         const browser = await puppeteer.launch({
-            headless: true,
+            headless: false,
             args: ['--no-sandbox', '--disable-setuid-sandbox'],
         });
 
@@ -24,19 +24,22 @@ export async function POST(request: NextRequest) {
         await page.setViewport({
             width: 1920,
             height: 1080,
-            deviceScaleFactor: 2  // Sharper rendering (DIP -> Pixel ratio)
+            deviceScaleFactor: 0.5  // Sharper rendering (DIP -> Pixel ratio)
         });
+
 
         // Increased timeout for large documents
         page.setDefaultTimeout(120000);
         page.setDefaultNavigationTimeout(120000);
 
-        // Construct full HTML document
+        // Construct full HTML document with dynamic assets
         const fullHTML = `
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
+    ${styles.map((href: string) => `<link rel="stylesheet" href="${href}">`).join('\n')}
+    ${scripts.map((src: string) => `<script src="${src}"></script>`).join('\n')}
     <style>
         ${css}
     </style>
@@ -112,15 +115,18 @@ export async function POST(request: NextRequest) {
 
         // Wait for layout stabilization
         await new Promise(resolve => setTimeout(resolve, 2000));
-
         const pdfBuffer = await page.pdf({
-            width: '210mm',   // Full A4 width
-            height: '297.5mm', // Half A4 height (as per Express example logic)
+            format: 'A4',
             printBackground: true,
-            margin: { top: '0px', bottom: '40px', left: '0px', right: '0px' },
-            preferCSSPageSize: true,
+            margin: {
+                top: '0mm',
+                bottom: '0mm',
+                left: '0mm',
+                right: '0mm',
+            },
             scale: 1,
         });
+
         await browser.close();
 
         // Return PDF as downloadable file

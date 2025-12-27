@@ -2,6 +2,7 @@
 import grapesjs from "grapesjs";
 
 import { defaultHtml } from "@/data/defaultHtml";
+import { convertBlobURLsToBase64 } from "@/utils/blobConverter";
 import { convertComponentToInlineCSS } from "@/utils/cssToInline";
 import "grapesjs/dist/css/grapes.min.css";
 import { useEffect, useRef, useState } from "react";
@@ -29,8 +30,41 @@ const OPENROUTER_MODELS = [
   "google/gemma-3-4b-it:free"
 ];
 
+const PAGE_SIZES = {
+  A4: {
+    portrait: { width: '210mm', height: '297mm' },
+    landscape: { width: '297mm', height: '210mm' },
+  },
+  LETTER: {
+    portrait: { width: '8.5in', height: '11in' },
+    landscape: { width: '11in', height: '8.5in' },
+  },
+  A5: {
+    portrait: { width: '148mm', height: '210mm' },
+    landscape: { width: '210mm', height: '148mm' },
+  },
+  CUSTOM: {
+    portrait: { width: '210mm', height: '297mm' },
+    landscape: { width: '297mm', height: '210mm' },
+  },
+};
+
 export default function GrapesEditor() {
   const editorRef = useRef(null);
+  const blobURLsRef = useRef(new Set());
+
+  // PDF Generator State
+  const [pageSize, setPageSize] = useState('A4');
+  const [orientation, setOrientation] = useState('portrait');
+  const [pageCount, setPageCount] = useState(1);
+  const [showPDFCustomModal, setShowPDFCustomModal] = useState(false);
+  const [customWidth, setCustomWidth] = useState('210');
+  const [customHeight, setCustomHeight] = useState('297');
+  const [pdfPageHeight, setPdfPageHeight] = useState(1123); // Default to A4 px height
+  const [customUnit, setCustomUnit] = useState('mm');
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+
+  // AI Modal State
   const [showModal, setShowModal] = useState(false);
   const [modalData, setModalData] = useState({ userRequest: '', imageFile: null, imageUrl: '', imagePreview: null, aiProvider: 'gemini', openRouterModel: OPENROUTER_MODELS[0], onSubmit: null, onCancel: null });
   const modalCallbacksRef = useRef({ setShowModal, setModalData });
@@ -44,17 +78,15 @@ export default function GrapesEditor() {
     if (!editorRef.current) return;
 
     const editor = grapesjs.init({
-      container: editorRef.current,
+      container: '#gjs-editor',
       height: "100vh",
       storageManager: false,
       fromElement: false,
 
       selectorManager: {
-        componentFirst: true,     // Always prioritize component selection over class selection
-        escapeName: name => name, // Prevent GrapesJS from rewriting class names
+        componentFirst: true,
+        escapeName: name => name,
       },
-      // add tailwind css hered
-
 
       canvas: {
         scripts: [
@@ -64,8 +96,200 @@ export default function GrapesEditor() {
           'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
         ],
       },
-      components: defaultHtml,
+      assetManager: {
+        upload: false, // Disable default upload
+        uploadFile: function (e) {
+          const files = e.dataTransfer ? e.dataTransfer.files : e.target.files;
+
+          if (!files?.length) return;
+
+          Array.from(files).forEach(file => {
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+              console.warn(`Skipping non-image: ${file.name}`);
+              return;
+            }
+
+            // Optional: Check file size (5MB limit)
+            const maxSize = 5 * 1024 * 1024;
+            if (file.size > maxSize) {
+              alert(`${file.name} exceeds 5MB limit`);
+              return;
+            }
+
+            try {
+              // Create blob URL
+              const blobURL = URL.createObjectURL(file);
+              blobURLsRef.current.add(blobURL);
+
+              // Add to asset manager
+              editor.AssetManager.add({
+                src: blobURL,
+                name: file.name,
+                type: 'image'
+              });
+
+              console.log(`✅ Image uploaded as blob: ${file.name}`);
+            } catch (error) {
+              console.error(`Failed to load ${file.name}:`, error);
+            }
+          });
+        }
+      },
+      // components: defaultHtml, // REMOVED: Managed manually in 'load'
     });
+
+    // Clean up deleted assets
+    editor.on('asset:remove', (asset) => {
+      const src = asset.get('src');
+      if (src?.startsWith('blob:')) {
+        URL.revokeObjectURL(src);
+        blobURLsRef.current.delete(src);
+        console.log(`🗑️ Blob URL revoked: ${src}`);
+      }
+    });
+
+    // Register visual-page component
+    editor.Components.addType('visual-page', {
+      model: {
+        defaults: {
+          tagName: 'div',
+          attributes: { class: 'visual-page' },
+          draggable: false,
+          droppable: true,
+          copyable: false,
+          selectable: false,
+          removable: false,
+          hoverable: false,
+          style: {
+            width: '210mm',
+            maxWidth: '210mm',
+            minWidth: '210mm',
+            margin: '0 auto',
+            background: 'white',
+            padding: '0px',
+            position: 'relative',
+            display: 'flow-root',
+            overflowAnchor: 'none',
+          },
+        },
+      },
+    });
+
+    editor.on('load', () => {
+      const wrapper = editor.getWrapper();
+
+      wrapper.setStyle({
+        background: 'black',
+        padding: '80px 20px 40px',
+        minHeight: '100vh',
+      });
+
+      if (!wrapper.find('.visual-page').length) {
+        const firstPage = wrapper.append({ type: 'visual-page' });
+        const page = Array.isArray(firstPage) ? firstPage[0] : firstPage;
+
+        // Use defaultHtml content if available, otherwise default text
+        // If defaultHtml is an array of components, we append them. 
+        // If it's a string, we append it as content.
+        if (defaultHtml) {
+          page.components(defaultHtml);
+        } else {
+          page.append(`
+                    <div>
+                        Start typing your content here...
+                    </div>
+                `);
+        }
+      }
+
+      applyPageSize(pageSize, orientation);
+      addPrintStyles(pageSize, orientation);
+      updatePageCount();
+    });
+
+    // Helper Functions
+    function convertToPixels(cssValue, frameDoc) {
+      const testEl = frameDoc.createElement('div');
+      testEl.style.cssText = `position: absolute; visibility: hidden; height: ${cssValue};`;
+      frameDoc.body.appendChild(testEl);
+      const pixels = testEl.offsetHeight;
+      frameDoc.body.removeChild(testEl);
+      return pixels;
+    }
+
+    function applyPageSize(sizeKey, orient) {
+      const size = PAGE_SIZES[sizeKey]?.[orient];
+      if (!size) return;
+
+      const wrapper = editor.getWrapper();
+      const pages = wrapper.find('.visual-page');
+
+      pages.forEach(page => {
+        page.addStyle({
+          width: size.width,
+        });
+      });
+
+      addPrintStyles(sizeKey, orient);
+      if (editorRef.current?.updateMarkers) {
+        editorRef.current.updateMarkers();
+      }
+    }
+
+    function addPrintStyles(sizeKey, orient) {
+      const size = PAGE_SIZES[sizeKey]?.[orient];
+      if (!size) return;
+
+      const frameDoc = editor.Canvas.getDocument();
+      if (!frameDoc) return;
+
+      const oldStyle = frameDoc.getElementById('print-styles');
+      if (oldStyle) oldStyle.remove();
+
+      const printStyle = `
+            @media print {
+                @page {
+                    size: A4; /* Default fallback */
+                }
+                .content {
+                    width: ${size.width};
+                    margin: 0 auto;
+                    background: white;
+                    display: flow-root;
+                }
+              
+                body {
+                    background: black;
+                    padding: 0;
+                }
+            }
+        `;
+
+      const styleEl = frameDoc.createElement('style');
+      styleEl.id = 'print-styles';
+      styleEl.textContent = printStyle;
+      frameDoc.head.appendChild(styleEl);
+    }
+
+    function updatePageCount() {
+      const wrapper = editor.getWrapper();
+      const pages = wrapper.find('.visual-page');
+      setPageCount(pages.length);
+    }
+
+    // Attach helpers to editor instance for external access
+    editor.getEditor = () => editor;
+    editor.applyPageSize = applyPageSize;
+    editor.updatePageCount = updatePageCount;
+
+    // ... (Tailwind config continues below) change from editorRef.current.getEditor to editor.getEditor specific assignment
+    editorRef.current = editor; // Ensure ref points to editor instance if needed, or stick to editorRef usage pattern
+
+    // Original code used editorRef.current as container, then assigned editor instance to it? 
+    // Wait, the original code: editorRef.current = editor; 
+    // I should maintain that.
+
 
     // Configure Tailwind CSS in the canvas frame
     editor.on("canvas:frame:load", () => {
@@ -76,11 +300,11 @@ export default function GrapesEditor() {
       const hasTailwindScript = frameDoc.querySelector('script[src*="tailwindcss"]');
       if (!hasTailwindScript) {
         const tailwindScript = frameDoc.createElement("script");
-        tailwindScript.src = "https://cdn.tailwindcss.com";
+        // tailwindScript.src = "https://cdn.tailwindcss.com";
         frameDoc.head.appendChild(tailwindScript);
       }
 
-      // Add Tailwind config to enable all utilities (for dynamic classes)
+      // Add Tailwind config
       const hasTailwindConfig = frameDoc.querySelector('script[data-tailwind-config]');
       if (!hasTailwindConfig) {
         const tailwindConfig = frameDoc.createElement("script");
@@ -106,15 +330,12 @@ export default function GrapesEditor() {
 
     let isProcessing = false;
 
-    // Component selection handler - converts CSS to inline styles
+    // Component selection handler
     editor.on("component:selected", (component) => {
       if (!component) return;
-
-      // Use the utility with debug logging enabled
       const htmlWithInline = convertComponentToInlineCSS(editor, component, {
         debug: false
       });
-
       console.log("Selected component HTML with inline styles (for AI):", htmlWithInline);
     });
 
@@ -151,12 +372,12 @@ export default function GrapesEditor() {
           const callbacks = modalCallbacksRef.current;
 
           callbacks.setModalData({
-            userRequest: '',
+            userRequest: 'Make a professional resume for Salim Khan as a full stack dev, should a two col, having a profile pic',
             imageFile: null,
             imageUrl: '',
             imagePreview: null,
             aiProvider: 'openrouter',
-            openRouterModel: OPENROUTER_MODELS[0], // Default to first model
+            openRouterModel: OPENROUTER_MODELS[2], // Default to first model
             onSubmit: async (userRequest, imageFile, imageUrl, aiProvider, openRouterModel) => {
               if (!userRequest.trim()) {
                 alert('Please enter a request');
@@ -295,13 +516,329 @@ export default function GrapesEditor() {
     return () => editor.destroy();
   }, []);
 
+  // Effect to update editor when size/orientation changes
+  useEffect(() => {
+    if (editorRef.current && editorRef.current.applyPageSize) {
+      editorRef.current.applyPageSize(pageSize, orientation);
+    }
+  }, [pageSize, orientation]);
+
+  // We need to keep a ref to the current pdfPageHeight so the static closure functions can see it
+  const pdfPageHeightRef = useRef(1123);
+  useEffect(() => {
+    pdfPageHeightRef.current = pdfPageHeight;
+    if (editorRef.current?.updateMarkers) {
+      editorRef.current.updateMarkers();
+    }
+  }, [pdfPageHeight]);
+
+  // Re-attach the marker logic properly to access the Ref
+  useEffect(() => {
+    if (!editorRef.current) return;
+
+    const editor = editorRef.current;
+
+    function updatePageBreakMarkers() {
+      const frameDoc = editor.Canvas.getDocument();
+      if (!frameDoc) return;
+
+      const wrapper = editor.getWrapper();
+      const pages = wrapper.find('.visual-page');
+
+      // Use the calibrated height
+      const pageHeight = pdfPageHeightRef.current;
+      if (!pageHeight || pageHeight <= 0) return;
+
+      pages.forEach(page => {
+        if (!page.view) return;
+
+        const el = page.view.el;
+
+        // Remove old markers first
+        const oldMarkers = el.querySelectorAll('.page-break-indicator');
+        oldMarkers.forEach(marker => marker.remove());
+
+        // Total content height of the visual-page element
+        const totalContentHeight = el.scrollHeight;
+
+        // Calculate number of pages based purely on calibrated height
+        const numberOfPages = Math.ceil(totalContentHeight / pageHeight);
+
+        // Only add indicators if content exceeds one page
+        if (numberOfPages <= 1) return;
+
+        // Add visual indicators at each page boundary
+        for (let i = 1; i < numberOfPages; i++) {
+          const marker = frameDoc.createElement('div');
+          marker.className = 'page-break-indicator';
+
+          // Position at exact CALIBRATED page height multiples
+          marker.style.cssText = `
+                      position: absolute;
+                      left: 0;
+                      right: 0;
+                      top: ${i * pageHeight}px;
+                      height: 3px;
+                      background: repeating-linear-gradient(90deg,
+                          #ff0000 0px,
+                          #ff0000 20px,
+                          transparent 20px,
+                          transparent 40px);
+                      pointer-events: none;
+                      z-index: 1000;
+                  `;
+
+          // Add page number label
+          const label = frameDoc.createElement('span');
+          label.textContent = `PAGE BREAK ${i} / ${numberOfPages - 1} @ ${(i * pageHeight).toFixed(0)}px`;
+          label.style.cssText = `
+                      position: absolute;
+                      right: 20px;
+                      top: -22px;
+                      background: #ff0000;
+                      color: white;
+                      padding: 6px 12px;
+                      font-size: 11px;
+                      font-weight: bold;
+                      border-radius: 3px;
+                      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+                      white-space: nowrap;
+                  `;
+          marker.appendChild(label);
+          el.appendChild(marker);
+        }
+        // console.log(`📄 Indicators: ${numberOfPages} pages`);
+      });
+    }
+
+    editor.updateMarkers = updatePageBreakMarkers;
+
+    // Listen to events
+    editor.off('component:add component:update'); // Clear old listeners
+    let markerTimeout;
+    editor.on('component:add component:update', () => {
+      clearTimeout(markerTimeout);
+      markerTimeout = setTimeout(() => {
+        updatePageBreakMarkers();
+      }, 300);
+    });
+
+    // Initial run
+    updatePageBreakMarkers();
+
+  }, []); // Run once to bind, but rely on ref for values
+
+  // Export and UI Handlers
+  const handleExportPDF = async () => {
+    // Note: We use the 'editor' instance directly if possible, or via ref
+    // The ref 'editorRef.current' now holds the editor instance as per initialization
+    const editor = editorRef.current;
+    if (!editor || !editor.getHtml) return;
+
+    try {
+      setIsGeneratingPDF(true);
+
+      const wrapper = editor.getWrapper();
+      const wrapperEl = wrapper?.view?.el;
+
+      // Get actual rendered HTML including dynamically added markers from the wrapper element
+      let html = wrapperEl ? wrapperEl.innerHTML : editor.getHtml();
+      html = await convertBlobURLsToBase64(html);
+      let css = editor.getCss();
+
+      // DEBUG: Check if markers are in the HTML
+      const markerCount = (html.match(/page-break-indicator/g) || []).length;
+      if (markerCount === 0) {
+        console.warn('⚠️ No markers found! HTML captured:', html.substring(0, 100));
+      }
+
+      // Convert camelCase CSS properties to kebab-case (CRITICAL for Puppeteer)
+      css = css.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
+
+      const size = PAGE_SIZES[pageSize]?.[orientation];
+
+      const exportData = {
+        html,
+        css,
+        pageConfig: {
+          width: size.width,
+          height: size.height,
+        },
+        scripts: [
+          'https://cdn.tailwindcss.com',
+        ],
+        styles: [
+          'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
+        ],
+      };
+
+      const response = await fetch('/api/puppeteer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(exportData),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to generate PDF');
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'document.pdf';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('PDF export error:', error);
+      alert('Failed to generate PDF: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
+  const handleSizeChange = (e) => {
+    const newSize = e.target.value;
+    if (newSize === 'CUSTOM') {
+      setShowPDFCustomModal(true);
+    } else {
+      setPageSize(newSize);
+    }
+  };
+
+  const handleOrientationToggle = () => {
+    setOrientation(prev => prev === 'portrait' ? 'landscape' : 'portrait');
+  };
+
+  const applyCustomSize = () => {
+    PAGE_SIZES.CUSTOM = {
+      portrait: {
+        width: `${customWidth}${customUnit}`,
+        height: `${customHeight}${customUnit}`
+      },
+      landscape: {
+        width: `${customHeight}${customUnit}`,
+        height: `${customWidth}${customUnit}`
+      },
+    };
+    setPageSize('CUSTOM');
+    setShowPDFCustomModal(false);
+  };
+
   return (
     <>
-      <div ref={editorRef} className="w-full h-full" />
+      <div className="relative w-full h-[100vh]">
+
+        {/* PDF Control Toolbar */}
+        <div style={{
+          position: 'fixed', top: '10px', left: '50%', transform: 'translateX(-50%)',
+          zIndex: 1000, background: 'white', padding: '12px 20px', borderRadius: '8px',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', display: 'flex', gap: '16px',
+          alignItems: 'center', border: '1px solid #e5e7eb',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <label style={{ fontSize: '14px', fontWeight: '500', color: '#374151', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <span>PDF Page Height (px):</span>
+              <input
+                type="number"
+                value={pdfPageHeight || ''}
+                onChange={(e) => setPdfPageHeight(Number(e.target.value))}
+                style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #d1d5db', fontSize: '12px', width: '80px' }}
+              />
+            </label>
+          </div>
+
+          <div style={{ width: '1px', height: '24px', background: '#e5e7eb' }} />
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <label style={{ fontSize: '14px', fontWeight: '500', color: '#374151' }}>Size:</label>
+            <select value={pageSize} onChange={handleSizeChange} style={{
+              padding: '6px 12px', borderRadius: '6px', border: '1px solid #d1d5db',
+              fontSize: '14px', cursor: 'pointer', background: 'white',
+            }}>
+              <option value="A4">A4</option>
+              <option value="LETTER">Letter</option>
+              <option value="CUSTOM">Custom...</option>
+            </select>
+          </div>
+
+          <div style={{ width: '1px', height: '24px', background: '#e5e7eb' }} />
+
+          <button onClick={handleOrientationToggle} style={{
+            padding: '6px 16px', borderRadius: '6px', border: '1px solid #d1d5db',
+            background: orientation === 'portrait' ? '#3b82f6' : '#f3f4f6',
+            color: orientation === 'portrait' ? 'white' : '#374151',
+            fontSize: '14px', fontWeight: '500', cursor: 'pointer',
+          }}>
+            📄 {orientation === 'portrait' ? 'Portrait' : 'Landscape'}
+          </button>
+
+          <div style={{ width: '1px', height: '24px', background: '#e5e7eb' }} />
+
+          <button onClick={handleExportPDF} disabled={isGeneratingPDF} style={{
+            padding: '6px 16px', borderRadius: '6px', border: '1px solid #ef4444',
+            background: isGeneratingPDF ? '#9ca3af' : '#ef4444',
+            color: 'white', fontSize: '14px', fontWeight: '500',
+            cursor: isGeneratingPDF ? 'not-allowed' : 'pointer',
+            opacity: isGeneratingPDF ? 0.7 : 1,
+          }}>
+            {isGeneratingPDF ? '⏳ Generating...' : '📄 Export PDF'}
+          </button>
+        </div>
+
+        {/* Custom PDF Size Modal */}
+        {showPDFCustomModal && (
+          <div style={{
+            position: 'fixed', inset: 0, background: 'rgba(0, 0, 0, 0.5)', zIndex: 2000,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <div style={{
+              background: 'white', padding: '24px', borderRadius: '12px', width: '400px',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+            }}>
+              <h3 style={{ margin: '0 0 20px 0', fontSize: '18px', fontWeight: '600' }}>Custom Page Size</h3>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>Width</label>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input type="number" value={customWidth} onChange={(e) => setCustomWidth(e.target.value)}
+                    style={{ flex: 1, padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px' }} />
+                  <select value={customUnit} onChange={(e) => setCustomUnit(e.target.value)}
+                    style={{ padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px' }}>
+                    <option value="mm">mm</option>
+                    <option value="in">in</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>Height</label>
+                <input type="number" value={customHeight} onChange={(e) => setCustomHeight(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px' }} />
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                <button onClick={() => setShowPDFCustomModal(false)} style={{
+                  padding: '8px 16px', borderRadius: '6px', border: '1px solid #d1d5db',
+                  background: 'white', cursor: 'pointer',
+                }}>Cancel</button>
+                <button onClick={applyCustomSize} style={{
+                  padding: '8px 16px', borderRadius: '6px', border: 'none',
+                  background: '#3b82f6', color: 'white', cursor: 'pointer',
+                }}>Apply</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div id="gjs-editor" ref={editorRef} className="w-full h-full" />
+      </div>
 
       {/* AI Regenerate Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity50">
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <h2 className="text-2xl font-bold mb-4">AI Regenerate Component</h2>
@@ -361,6 +898,14 @@ export default function GrapesEditor() {
                   <textarea
                     value={modalData.userRequest}
                     onChange={(e) => setModalData({ ...modalData, userRequest: e.target.value })}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        if (modalData.onSubmit) {
+                          modalData.onSubmit(modalData.userRequest, modalData.imageFile, modalData.imageUrl, modalData.aiProvider, modalData.openRouterModel);
+                        }
+                      }
+                    }}
                     rows={4}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm
                       focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"

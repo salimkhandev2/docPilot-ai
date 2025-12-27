@@ -1,62 +1,325 @@
-<!DOCTYPE html>
-<html lang="en">
+<!-- add tawilwind css -->
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  * {
+    box-sizing: border-box;
+  }
 
-<head>
-  <meta charset="UTF-8">
-  <title>Paged.js PDF Preview</title>
+  body {
+    margin: 0;
+    overflow: hidden !important;
+  }
 
-  <!-- Paged.js -->
-  <script src="https://unpkg.com/pagedjs/dist/paged.polyfill.js"></script>
+  #ihkq {
+    background: black;
+    padding: 80px 20px 40px;
+    minHeight: 100vh;
+  }
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-    }
+  #i9g9 {
+    width: 210mm;
+    margin: 0 auto;
+    background: white;
+    padding: 0px;
+    position: relative;
+    display: flow-root;
 
-    @page {
-      size: A4;
-      margin: 20mm;
-    }
+  }
 
-    .pagedjs_page {
-      margin: 20px auto;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-      background: white;
-      padding: 10mm;
-      width: 210mm;
-      min-height: 297mm;
-    }
+  #i198r {
+    width: 95%;
+  }
 
-    h1 {
-      page-break-before: always;
-    }
+  #i0mcj {
+    width: 90%;
+  }
 
-    .box {
-      height: 150px;
-      border: 2px solid black;
-      margin-bottom: 20px;
-      padding: 10px;
-    }
-  </style>
-</head>
+  #inn4u {
+    width: 88%;
+  }
 
-<body>
-  <div id="content">
-    <h1>Page One</h1>
-    <div class="box">Content block 1</div>
-    <div class="box">Content block 2</div>
+  #iwu5p {
+    width: 85%;
+  }
 
-    <h1>Page Two</h1>
-    <div class="box">Lorem ipsum dolor, sit amet consectetur adipisicing elit. Facilis quae voluptatibus est adipisci facere sapiente autem dolore itaque assumenda iure aut non ea laudantium, enim provident sequi sint velit quia maiores modi perferendis aliquid aliquam. Ea, repellendus at perferendis, odit, obcaecati dolor eaque perspiciatis earum magnam itaque illo vitae aspernatur quas quasi eius facilis incidunt? Sunt ex eos ipsam in sit doloremque, assumenda incidunt possimus reiciendis quidem ratione tenetur ea quasi accusantium cumque totam animi quos eum. Corporis ratione eaque ducimus minima minus cum debitis reiciendis! Atque unde possimus quas magni minus pariatur officia quo! Expedita incidunt eveniet nesciunt dolore, beatae possimus commodi ad consequuntur? Veritatis minus praesentium fugiat temporibus quos asperiores accusamus animi porro similique unde libero, inventore, labore deserunt ad eos incidunt tempore quo sint assumenda. Itaque, laboriosam inventore! Iure porro facere tempore nihil necessitatibus totam corrupti ut perferendis sunt asperiores, iste, placeat quae laudantium esse aspernatur rem dolores consequatur odio doloribus. Sapiente, beatae maiores ipsam, modi voluptate ipsa distinctio unde tenetur sint necessitatibus facere quae quia animi reiciendis, voluptates illo aperiam. Sunt voluptas dolores numquam. Nam reprehenderit similique dolores eaque quos, quisquam laboriosam tempore veritatis, corporis harum minus quo sint quis eius soluta obcaecati suscipit! Nobis maxime totam repellendus asperiores provident! Impedit voluptatibus dolor minus praesentium exercitationem at laudantium ad commodi ea corporis, maxime fuga veritatis aspernatur aut eveniet dolorum, quaerat natus in optio temporibus architecto quae! Nisi inventore temporibus, reprehenderit, optio accusantium culpa non nam quasi dolore eum maiores cum doloribus maxime! Quia esse vero enim quod, nisi dolorum distinctio qui temporibus recusandae explicabo voluptas aperiam veniam? Iure et minima explicabo amet, similique placeat mollitia delectus quibusdam! Perspiciatis, tempore vel! Mollitia laborum totam cum consequuntur vel maiores voluptatem quibusdam, amet debitis nesciunt deleniti officiis autem iusto, ut similique delectus quos adipisci inventore blanditiis nemo? Veniam maxime iste, soluta corporis laudantium quae! Ipsa, dolores voluptates voluptatibus, tempora quam, harum explicabo nesciunt modi exercitationem vero nisi aliquid perspiciatis. Voluptas vitae, maiores officiis maxime excepturi, quo nisi, beatae fuga quae totam voluptates!</div>
-    <div class="box">Content block 4</div>
+  #ibnlq {
+    width: 82%;
+  }
+
+  #irok {
+    width: 210mm;
+    margin-left: 0;
+    margin-right: 0;
+    background: white;
+    padding: 0;
+    box-sizing: border-box;
+  }
+</style>
+
+<body id="ihkq">
+  <div class="visual-page" id="i9g9">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Max Johnson - UX Designer Resume
+    </title>
+    <div id="irok">
+      <div class="flex flex-col h-screen bg-gray-50">
+        <div class="flex flex-1 overflow-hidden">
+          <div class="w-2/5 bg-blue-900 text-white p-8">
+            <div class="flex flex-col items-center mb-8">
+              <div class="w-32 h-32 bg-gray-300 rounded-full mb-4 overflow-hidden border-4 border-white">
+                <img
+                  src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=158&amp;h=158&amp;fit=crop&amp;crop=face"
+                  alt="Salim Khan" class="w-full h-full object-cover" />
+              </div>
+              <h1 class="text-2xl font-bold text-center">Salim Khan
+              </h1>
+              <p class="text-blue-200 text-center">Full Stack Developer
+              </p>
+            </div>
+            <div class="space-y-6">
+              <div>
+                <h2 class="text-lg font-semibold mb-3 border-b-2 border-blue-600 pb-1">CONTACT
+                </h2>
+                <div class="space-y-2 text-sm">
+                  <div class="flex items-center">
+                    <i class="fas fa-envelope mr-3 text-blue-300">
+                    </i>
+                    <span>salim.khan@email.com</span>
+                  </div>
+                  <div class="flex items-center">
+                    <i class="fas fa-phone mr-3 text-blue-300">
+                    </i>
+                    <span>+1 (555) 123-4567</span>
+                  </div>
+                  <div class="flex items-center">
+                    <i class="fab fa-linkedin mr-3 text-blue-300">
+                    </i>
+                    <span>linkedin.com/in/salimkhan</span>
+                  </div>
+                  <div class="flex items-center">
+                    <i class="fab fa-github mr-3 text-blue-300">
+                    </i>
+                    <span>github.com/salimkhan</span>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <h2 class="text-lg font-semibold mb-3 border-b-2 border-blue-600 pb-1">SKILLS
+                </h2>
+                <div class="space-y-3">
+                  <div>
+                    <div class="flex justify-between text-sm mb-1">
+                      <span>JavaScript/TypeScript</span>
+                      <span>95%</span>
+                    </div>
+                    <div class="w-full bg-blue-800 rounded-full h-2">
+                      <div class="bg-white h-2 rounded-full" id="i198r">
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="flex justify-between text-sm mb-1">
+                      <span>React/Vue/Angular</span>
+                      <span>90%</span>
+                    </div>
+                    <div class="w-full bg-blue-800 rounded-full h-2">
+                      <div class="bg-white h-2 rounded-full" id="i0mcj">
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="flex justify-between text-sm mb-1">
+                      <span>Node.js/Express</span>
+                      <span>88%</span>
+                    </div>
+                    <div class="w-full bg-blue-800 rounded-full h-2">
+                      <div class="bg-white h-2 rounded-full" id="inn4u">
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="flex justify-between text-sm mb-1">
+                      <span>Python/Django</span>
+                      <span>85%</span>
+                    </div>
+                    <div class="w-full bg-blue-800 rounded-full h-2">
+                      <div class="bg-white h-2 rounded-full" id="iwu5p">
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="flex justify-between text-sm mb-1">
+                      <span>SQL/NoSQL</span>
+                      <span>82%</span>
+                    </div>
+                    <div class="w-full bg-blue-800 rounded-full h-2">
+                      <div class="bg-white h-2 rounded-full" id="ibnlq">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <h2 class="text-lg font-semibold mb-3 border-b-2 border-blue-600 pb-1">LANGUAGES
+                </h2>
+                <div class="space-y-2 text-sm">
+                  <div class="flex justify-between">
+                    <span>English</span>
+                    <span>Native</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span>Spanish</span>
+                    <span>Intermediate</span>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <h2 class="text-lg font-semibold mb-3 border-b-2 border-blue-600 pb-1">INTERESTS
+                </h2>
+                <div class="flex flex-wrap gap-2">
+                  <span class="bg-blue-800 px-2 py-1 rounded text-xs">Open Source</span>
+                  <span class="bg-blue-800 px-2 py-1 rounded text-xs">AI/ML</span>
+                  <span class="bg-blue-800 px-2 py-1 rounded text-xs">Cloud Tech</span>
+                  <span class="bg-blue-800 px-2 py-1 rounded text-xs">Gaming</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="w-3/5 bg-white p-8 overflow-y-auto">
+            <div class="space-y-8">
+              <div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">Professional Summary
+                </h2>
+                <p class="text-gray-600 leading-relaxed">
+                  Passionate and results-driven Full Stack Developer with 8+ years of experience building scalable web
+                  applications and leading development teams.
+                  Expertise in modern JavaScript frameworks, cloud technologies, and database optimization. Proven track
+                  record of delivering high-quality software
+                  solutions that improve user experience and business efficiency.
+                </p>
+              </div>
+              <div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">Work Experience
+                </h2>
+                <div class="border-l-4 border-blue-500 pl-4 mb-6">
+                  <div class="flex justify-between items-start mb-2">
+                    <div>
+                      <h3 class="text-lg font-semibold text-gray-800">Senior Full Stack Developer
+                      </h3>
+                      <p class="text-blue-600 font-medium">TechCorp Solutions, San Francisco
+                      </p>
+                    </div>
+                    <span class="text-gray-500 text-sm">Jan 2020 - Present</span>
+                  </div>
+                  <ul class="list-disc list-inside text-gray-600 space-y-1">
+                    <li>Led development of a customer relationship management platform serving 50,000+ users
+                    </li>
+                    <li>Implemented microservices architecture reducing API response time by 40%
+                    </li>
+                    <li>Mentored 5 junior developers and established coding best practices
+                    </li>
+                    <li>Integrated AWS services including Lambda, S3, and RDS for scalable infrastructure
+                    </li>
+                  </ul>
+                </div>
+                <div class="border-l-4 border-blue-500 pl-4 mb-6">
+                  <div class="flex justify-between items-start mb-2">
+                    <div>
+                      <h3 class="text-lg font-semibold text-gray-800">Full Stack Developer
+                      </h3>
+                      <p class="text-blue-600 font-medium">Digital Innovations, New York
+                      </p>
+                    </div>
+                    <span class="text-gray-500 text-sm">Mar 2017 - Dec 2019</span>
+                  </div>
+                  <ul class="list-disc list-inside text-gray-600 space-y-1">
+                    <li>Developed e-commerce platform processing $2M+ in monthly transactions
+                    </li>
+                    <li>Created real-time dashboard using React and WebSocket for business analytics
+                    </li>
+                    <li>Optimized database queries reducing page load time by 60%
+                    </li>
+                    <li>Implemented CI/CD pipeline using Jenkins and Docker
+                    </li>
+                  </ul>
+                </div>
+                <div class="border-l-4 border-blue-500 pl-4">
+                  <div class="flex justify-between items-start mb-2">
+                    <div>
+                      <h3 class="text-lg font-semibold text-gray-800">Frontend Developer
+                      </h3>
+                      <p class="text-blue-600 font-medium">WebCraft Studios, Austin
+                      </p>
+                    </div>
+                    <span class="text-gray-500 text-sm">Jun 2015 - Feb 2017</span>
+                  </div>
+                  <ul class="list-disc list-inside text-gray-600 space-y-1">
+                    <li>Built responsive web applications using React and Redux
+                    </li>
+                    <li>Collaborated with UX/UI team to implement modern, accessible interfaces
+                    </li>
+                    <li>Integrated RESTful APIs and third-party services
+                    </li>
+                    <li>Conducted code reviews and performance optimization
+                    </li>
+                  </ul>
+                </div>
+              </div>
+              <div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">Education
+                </h2>
+                <div class="border-l-4 border-blue-500 pl-4">
+                  <div class="flex justify-between items-start mb-2">
+                    <div>
+                      <h3 class="text-lg font-semibold text-gray-800">Bachelor of Science in Computer Science
+                      </h3>
+                      <p class="text-blue-600 font-medium">University of Texas, Austin
+                      </p>
+                    </div>
+                    <span class="text-gray-500 text-sm">2011 - 2015</span>
+                  </div>
+                  <p class="text-gray-600">Graduated with Honors - GPA: 3.7/4.0
+                  </p>
+                </div>
+              </div>
+              <div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">Certifications
+                </h2>
+                <div class="space-y-3">
+                  <div class="flex justify-between items-center border-b border-gray-200 pb-2">
+                    <div>
+                      <h3 class="font-semibold text-gray-800">AWS Certified Solutions Architect
+                      </h3>
+                      <p class="text-gray-600 text-sm">Amazon Web Services
+                      </p>
+                    </div>
+                    <span class="text-gray-500 text-sm">2022</span>
+                  </div>
+                  <div class="flex justify-between items-center border-b border-gray-200 pb-2">
+                    <div>
+                      <h3 class="font-semibold text-gray-800">Google Professional Cloud Developer
+                      </h3>
+                      <p class="text-gray-600 text-sm">Google Cloud Platform
+                      </p>
+                    </div>
+                    <span class="text-gray-500 text-sm">2021</span>
+                  </div>
+                  <div class="flex justify-between items-center">
+                    <div>
+                      <h3 class="font-semibold text-gray-800">React Developer Certification
+                      </h3>
+                      <p class="text-gray-600 text-sm">Meta (Facebook)
+                      </p>
+                    </div>
+                    <span class="text-gray-500 text-sm">2020</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
-
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      // Initialize Paged.js
-      PagedPolyfill.preview(document.getElementById("content"));
-    });
-  </script>
 </body>
-
-</html>
