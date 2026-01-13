@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import puppeteer from 'puppeteer';
+import { browserPool } from '../../../lib/browserPool';
 
 export async function POST(request: NextRequest) {
     try {
@@ -12,30 +12,27 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Launch Puppeteer with consistent settings
-        const browser = await puppeteer.launch({
-            headless: false,
-            args: ['--no-sandbox', '--disable-setuid-sandbox'],
-        });
+        // Acquire browser from pool (reuses existing browser)
+        const browser = await browserPool.acquireBrowser();
 
-        const page = await browser.newPage();
+        try {
+            // Create isolated context for this request
+            const context = await browser.newContext({
+                viewport: {
+                    width: 1920,
+                    height: 1080,
+                },
+            });
 
-        // High Resolution Viewport Settings
-        await page.setViewport({
-            width: 1920,
-            height: 1080,
-            deviceScaleFactor: 0.5  // Sharper rendering (DIP -> Pixel ratio)
-        });
+            const page = await context.newPage();
 
+            // High timeout for large documents
+            page.setDefaultTimeout(120000);
 
-        // Increased timeout for large documents
-        page.setDefaultTimeout(120000);
-        page.setDefaultNavigationTimeout(120000);
-
-        // Construct full HTML document with dynamic assets
-        const fullHTML = `
+            // Construct full HTML document with dynamic assets
+            const fullHTML = `
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     ${styles.map((href: string) => `<link rel="stylesheet" href="${href}">`).join('\n')}
@@ -50,92 +47,133 @@ export async function POST(request: NextRequest) {
 </html>
         `;
 
-        // Set content
-        await page.setContent(fullHTML, {
-            waitUntil: 'networkidle0',
-            timeout: 120000
-        });
-
-        // Wait for fonts to fully load before measuring
-        await page.evaluate(() => document.fonts.ready);
-
-        // Normalize layout to match indicator calculations
-        await page.evaluate((config) => {
-            // Remove body padding/margin
-            const body = document.body as HTMLElement;
-            body.style.padding = '0';
-            body.style.margin = '0';
-
-            // Remove or override conflicting @page CSS rules
-            const existingStyles = document.querySelectorAll('style');
-            existingStyles.forEach(style => {
-                if (style.textContent && style.textContent.includes('@page')) {
-                    style.textContent = style.textContent.replace(
-                        /@page\s*\{[^}]*\}/g,
-                        ''
-                    );
-                }
+            // Set content
+            await page.setContent(fullHTML, {
+                waitUntil: 'networkidle',
+                timeout: 120000
             });
 
+            // Wait for fonts to fully load
+            await page.evaluate(() => document.fonts.ready);
+
+            const backgrounds = await page.evaluate(() => {
+                function getSelector(el: Element): string {
+                    if (el.id) return `#${el.id}`;
+                    if (el.className && typeof el.className === 'string') {
+                        return (
+                            el.tagName.toLowerCase() +
+                            '.' +
+                            el.className.trim().split(/\s+/).join('.')
+                        );
+                    }
+                    return el.tagName.toLowerCase();
+                }
+
+                const results: any[] = [];
+                const elements = Array.from(document.querySelectorAll('*'));
+
+                for (const el of elements) {
+                    // 🚫 Skip body & html
+                    if (el.tagName === 'BODY' || el.tagName === 'HTML') continue;
+
+                    const style = window.getComputedStyle(el);
+
+                    const bgColor = style.backgroundColor;
+                    const bgImage = style.backgroundImage;
+
+                    const hasColor =
+                        bgColor &&
+                        bgColor !== 'rgba(0, 0, 0, 0)' &&
+                        bgColor !== 'transparent';
+
+                    const hasImage =
+                        bgImage && bgImage !== 'none';
+
+                    if (hasColor || hasImage) {
+                        results.push({
+                            selector: getSelector(el),
+                            backgroundColor: hasColor ? bgColor : null,
+                            backgroundImage: hasImage ? bgImage : null,
+                        });
+                    }
+                }
+
+                return results;
+            });
+
+            console.log('🎨 Backgrounds (excluding body & html)');
+            // backgrounds = array of background objects
+            const pdfbg = backgrounds.find((bg: any) => {
+                return !/visual-page-id/.test(bg.selector);
+            });
+
+            console.log('PDF Background Color:', pdfbg?.backgroundColor || 'Not found');
+
+
+
             // Inject CSS to set page size and overrides
-            const style = document.createElement('style');
-            style.id = 'puppeteer-pdf-override';
-            style.textContent = `
-                @page {
-                    size: 210mm 297.5mm !important; /* Full A4 width (210mm) × Half A4 height (148.5mm) */
-                }
-                .visual-page {
-                    margin: 0 auto !important;
-                    padding: 0mm !important;
-                    border: none !important;
-                    box-shadow: none !important;
-                    background: white !important;
-                    max-width: none !important;
-                    box-sizing: border-box !important;
-                    position: relative !important;
-                    
-                }
-                /* Ensure content width matches full A4 width */
-                .content {
-                    width: 210mm !important;
-                    max-width: 210mm !important;
-                    min-width: 210mm !important;
-                    padding: 0px !important;
-                }
-                /* Show indicators in final PDF */
-                .page-break-indicator {
-                    display: block !important;
-                }
-            `;
-            document.head.appendChild(style);
-        }, pageConfig);
+            await page.evaluate((bg: any) => {
+                const style = document.createElement('style');
+                style.id = 'playwright-pdf-override';
+                style.textContent = `
+                    @page {
+                        size: 210mm 297mm !important; 
+                        margin: 0 !important;
+                        ${bg?.backgroundColor ? `background-color: ${bg.backgroundColor} !important;` : ''}
+                    }
+                    .visual-page {
+                        margin: 0 !important; 
+                        padding: 0mm !important;
+                        border: none !important;
+                        box-shadow: none !important;
+                        max-width: none !important;
+                        box-sizing: border-box !important;
+                        position: relative !important;
+                        background-color: transparent !important;
+                    }
+                    .content {
+                        width: 210mm !important;
+                        max-width: 210mm !important;
+                        min-width: 210mm !important;
+                        padding: 0px !important;
+                        margin: 0 !important;
+                    }
+                    .page-break-indicator {
+                        display: block !important;
+                    }
+                `;
+                document.head.appendChild(style);
+            }, pdfbg);
 
-        // Wait for fonts again after DOM modifications
-        await page.evaluate(() => document.fonts.ready);
+            // Wait for layout stabilization
+            await new Promise(resolve => setTimeout(resolve, 2000));
 
-        // Wait for layout stabilization
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        const pdfBuffer = await page.pdf({
-            format: 'A4',
-            printBackground: true,
-            margin: {
-                top: '0mm',
-                bottom: '0mm',
-                left: '0mm',
-                right: '0mm',
-            },
-            scale: 1,
-        });
+            const pdfBuffer = await page.pdf({
+                format: 'A4',
+                printBackground: true,
+                margin: {
+                    top: '0mm',
+                    bottom: '0mm',
+                    left: '0mm',
+                    right: '0mm'
+                },
+                scale: 1,
+            });
 
-        await browser.close();
+            // Close context (reuses browser in pool)
+            await context.close();
 
-        // Return PDF as downloadable file
-        return new NextResponse(Buffer.from(pdfBuffer), {
-            headers: {
-                'Content-Type': 'application/pdf',
-                'Content-Disposition': 'attachment; filename="document.pdf"',
-            },
-        });
+            // Return PDF as downloadable file
+            return new NextResponse(Buffer.from(pdfBuffer), {
+                headers: {
+                    'Content-Type': 'application/pdf',
+                    'Content-Disposition': 'attachment; filename="document.pdf"',
+                },
+            });
+        } finally {
+            // Always release browser back to pool
+            browserPool.releaseBrowser(browser);
+        }
     } catch (error) {
         console.error('PDF generation error:', error);
         return NextResponse.json(

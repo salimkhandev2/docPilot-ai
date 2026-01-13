@@ -154,7 +154,7 @@ export default function GrapesEditor() {
       model: {
         defaults: {
           tagName: 'div',
-          attributes: { class: 'visual-page' },
+          attributes: { class: 'visual-page', id: 'visual-page-id' },
           draggable: false,
           droppable: true,
           copyable: false,
@@ -372,12 +372,12 @@ export default function GrapesEditor() {
           const callbacks = modalCallbacksRef.current;
 
           callbacks.setModalData({
-            userRequest: 'Make a professional resume for Salim Khan as a full stack dev, should a two col, having a profile pic',
+            userRequest: 'Create a professional two-column resume for Salim Khan as a Full Stack Developer. The left column should include a professional profile photo (rounded or circular), contact details, and clearly grouped skills (Frontend, Backend, Database, Tools). The right column should contain a concise professional summary (2–3 lines), practical project-based experience, work history, and education. Use a modern, clean, ATS-friendly design with professional colours like dark blue, grey, or black, and easy-to-read fonts. The resume should be job-ready and suitable for full stack developer roles.',
             imageFile: null,
             imageUrl: '',
             imagePreview: null,
             aiProvider: 'openrouter',
-            openRouterModel: OPENROUTER_MODELS[2], // Default to first model
+            openRouterModel: OPENROUTER_MODELS[2], // Select Alibaba model
             onSubmit: async (userRequest, imageFile, imageUrl, aiProvider, openRouterModel) => {
               if (!userRequest.trim()) {
                 alert('Please enter a request');
@@ -386,7 +386,6 @@ export default function GrapesEditor() {
 
               isProcessing = true;
               callbacks.setShowModal(false);
-
               const um = editor.UndoManager;
               let placeholderComponent = null;
               let streamingComponent = null;
@@ -426,34 +425,57 @@ export default function GrapesEditor() {
                 // Performance optimization: Use requestAnimationFrame for smooth updates
                 let pendingUpdate = false;
                 let latestHTML = '';
-                let lastProcessedHTML = '';
+                let streamingContainer = null;
 
                 // Helper: Schedule update on next animation frame (syncs with browser repaint)
-                const scheduleUpdate = () => {
-                  if (pendingUpdate) return; // Already scheduled
+                const scheduleUpdate = (isFinal = false) => {
+                  if (pendingUpdate && !isFinal) return;
 
                   pendingUpdate = true;
                   requestAnimationFrame(() => {
                     pendingUpdate = false;
 
-                    // Skip if HTML hasn't changed since last update
-                    if (!latestHTML || latestHTML === lastProcessedHTML) return;
-
-                    lastProcessedHTML = latestHTML;
-
-                    // Update component (GrapesJS handles HTML parsing internally)
                     try {
-                      if (!streamingComponent) {
-                        placeholderComponent.remove();
-                        const newComponent = parent.append(latestHTML, { at: index });
-                        streamingComponent = Array.isArray(newComponent) ? newComponent[0] : newComponent;
-                      } else {
-                        // GrapesJS-native update (more efficient than manual DOM parsing)
-                        streamingComponent.replaceWith(latestHTML);
-                        streamingComponent = parent.components().at(index);
+                      // 1. Create one stable container if it doesn't exist
+                      if (!streamingContainer) {
+                        if (placeholderComponent) placeholderComponent.remove();
+
+                        // We create a wrapper component to hold the raw HTML during stream
+                        const newContainer = parent.append({
+                          tagName: 'div',
+                          content: '', // Start empty
+                          attributes: {
+                            class: 'ai-streaming-wrapper',
+                            style: 'min-height: 100px; border: 2px dashed #3b82f6; border-radius: 8px; padding: 10px; position: relative; overflow: hidden;'
+                          }
+                        }, { at: index });
+
+                        streamingContainer = Array.isArray(newContainer) ? newContainer[0] : newContainer;
+                        editor.select(streamingContainer);
                       }
-                    } catch (parseError) {
-                      console.log("⏳ Waiting for complete HTML structure...");
+
+                      // 2. Update the RAW element inside the container (fast, skips GrapesJS parsing overhead)
+                      const el = streamingContainer.getEl();
+                      if (el && latestHTML) {
+                        // Prevent GrapesJS from trying to parse this as components during the stream
+                        el.innerHTML = latestHTML;
+                      }
+
+                      // 3. On finalization, replace the container with final GrapesJS components
+                      if (isFinal && latestHTML) {
+                        console.log("🏁 Finalizing AI component integration...");
+                        // Clean the final HTML one last time
+                        const finalHTML = cleanAIResponse(latestHTML);
+                        if (validateAIResponse(finalHTML)) {
+                          const finalComponent = streamingContainer.replaceWith(finalHTML);
+                          const instantiated = Array.isArray(finalComponent) ? finalComponent[0] : finalComponent;
+                          if (instantiated) {
+                            editor.select(instantiated);
+                          }
+                        }
+                      }
+                    } catch (err) {
+                      console.warn("⏳ Waiting for valid HTML chunk...", err);
                     }
                   });
                 };
@@ -463,21 +485,31 @@ export default function GrapesEditor() {
                 const cleanedHTML = await streamFn(originalHTML, userRequest, imageFile, imageUrl, openRouterModel, (chunk, isComplete) => {
                   accumulatedHTML += chunk;
 
-                  // Clean accumulated HTML
-                  let htmlToParse = accumulatedHTML.trim();
-                  const firstTagIndex = htmlToParse.indexOf('<');
-                  if (firstTagIndex > 0) {
-                    htmlToParse = htmlToParse.substring(firstTagIndex);
+                  // Efficient live preview cleaning: Strip markdown and trailing partial tags
+                  let htmlToPreview = accumulatedHTML;
+                  const firstTag = htmlToPreview.indexOf('<');
+                  if (firstTag !== -1) {
+                    const lastOpen = htmlToPreview.lastIndexOf('<');
+                    const lastClose = htmlToPreview.lastIndexOf('>');
+
+                    // Slice from first tag to start of any unclosed trailing tag
+                    htmlToPreview = htmlToPreview.substring(
+                      firstTag,
+                      lastOpen > lastClose ? lastOpen : undefined
+                    ).replace(/```\s*$/i, '').trim();
                   }
 
-                  // Only schedule update if we have valid HTML
-                  if (htmlToParse.startsWith('<') && htmlToParse !== latestHTML) {
-                    latestHTML = htmlToParse;
-                    scheduleUpdate(); // Throttled by RAF, max 60fps
+                  if (isComplete || (htmlToPreview && htmlToPreview !== latestHTML)) {
+                    latestHTML = htmlToPreview || latestHTML;
+                    scheduleUpdate(isComplete);
                   }
                 });
 
-                // Use the cleaned HTML returned from streamGeminiAI
+                // Final safety: Call update with full cleaned result from the backend
+                latestHTML = cleanedHTML;
+                scheduleUpdate(true);
+
+                // Final confirmation
                 accumulatedHTML = cleanedHTML;
 
                 // Final validation
@@ -485,10 +517,7 @@ export default function GrapesEditor() {
                   throw new Error("Invalid AI response format");
                 }
 
-                // Final selection - no style preservation
-                if (streamingComponent) {
-                  editor.select(streamingComponent);
-                }
+                // The final selection is handled in scheduleUpdate(true)
 
                 um.stop();
                 console.log("✅ AI streaming completed successfully");
@@ -542,86 +571,75 @@ export default function GrapesEditor() {
       const frameDoc = editor.Canvas.getDocument();
       if (!frameDoc) return;
 
+      // Find the visual-page container
       const wrapper = editor.getWrapper();
-      const pages = wrapper.find('.visual-page');
+      const pages = wrapper.find('.visual-page, #visual-page-id');
 
       // Use the calibrated height
       const pageHeight = pdfPageHeightRef.current;
       if (!pageHeight || pageHeight <= 0) return;
 
       pages.forEach(page => {
-        if (!page.view) return;
-
-        const el = page.view.el;
+        const el = page.getEl();
+        if (!el) return;
 
         // Remove old markers first
         const oldMarkers = el.querySelectorAll('.page-break-indicator');
         oldMarkers.forEach(marker => marker.remove());
 
-        // Total content height of the visual-page element
+        // Total content height
         const totalContentHeight = el.scrollHeight;
-
-        // Calculate number of pages based purely on calibrated height
         const numberOfPages = Math.ceil(totalContentHeight / pageHeight);
 
-        // Only add indicators if content exceeds one page
         if (numberOfPages <= 1) return;
 
-        // Add visual indicators at each page boundary
+        // Add visual indicators
         for (let i = 1; i < numberOfPages; i++) {
           const marker = frameDoc.createElement('div');
           marker.className = 'page-break-indicator';
-
-          // Position at exact CALIBRATED page height multiples
           marker.style.cssText = `
-                      position: absolute;
-                      left: 0;
-                      right: 0;
-                      top: ${i * pageHeight}px;
-                      height: 3px;
-                      background: repeating-linear-gradient(90deg,
-                          #ff0000 0px,
-                          #ff0000 20px,
-                          transparent 20px,
-                          transparent 40px);
-                      pointer-events: none;
-                      z-index: 1000;
-                  `;
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: ${i * pageHeight}px;
+            height: 2px;
+            background: repeating-linear-gradient(90deg, #ff4444 0, #ff4444 15px, transparent 15px, transparent 30px);
+            pointer-events: none;
+            z-index: 9999;
+          `;
 
-          // Add page number label
           const label = frameDoc.createElement('span');
-          label.textContent = `PAGE BREAK ${i} / ${numberOfPages - 1} @ ${(i * pageHeight).toFixed(0)}px`;
+          label.textContent = `PAGE ${i + 1} START`;
           label.style.cssText = `
-                      position: absolute;
-                      right: 20px;
-                      top: -22px;
-                      background: #ff0000;
-                      color: white;
-                      padding: 6px 12px;
-                      font-size: 11px;
-                      font-weight: bold;
-                      border-radius: 3px;
-                      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-                      white-space: nowrap;
-                  `;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            top: -10px;
+            background: #ff4444;
+            color: white;
+            padding: 2px 8px;
+            font-size: 10px;
+            font-weight: bold;
+            border-radius: 4px;
+            white-space: nowrap;
+          `;
+
           marker.appendChild(label);
           el.appendChild(marker);
         }
-        // console.log(`📄 Indicators: ${numberOfPages} pages`);
       });
     }
 
     editor.updateMarkers = updatePageBreakMarkers;
 
-    // Listen to events
-    editor.off('component:add component:update'); // Clear old listeners
+    // Listen to ALL relevant events for markers
     let markerTimeout;
-    editor.on('component:add component:update', () => {
+    const triggerUpdate = () => {
       clearTimeout(markerTimeout);
-      markerTimeout = setTimeout(() => {
-        updatePageBreakMarkers();
-      }, 300);
-    });
+      markerTimeout = setTimeout(updatePageBreakMarkers, 100);
+    };
+
+    editor.on('component:add component:remove component:update component:styleUpdate canvas:drop load', triggerUpdate);
 
     // Initial run
     updatePageBreakMarkers();

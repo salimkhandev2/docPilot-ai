@@ -23,6 +23,8 @@ css
 :only-child
 :empty
 
+Hide scrollbar in the printPDF and also dont enable it in the editor
+
 
 dont use it while genereating code and targeting the tags via selectors
 

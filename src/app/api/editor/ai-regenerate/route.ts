@@ -227,7 +227,7 @@ Generate the modified HTML now:`;
 
         try {
           const response = await client.models.generateContentStream({
-            model: "gemini-2.5-flash-lite",
+            model: "gemini-2.5-flash",
             contents: contents,
             config: {
               responseModalities: ["TEXT"],
