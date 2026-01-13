@@ -425,6 +425,7 @@ export default function GrapesEditor() {
                 // Performance optimization: Use requestAnimationFrame for smooth updates
                 let pendingUpdate = false;
                 let latestHTML = '';
+                let lastCleanedPreview = ''; // Reusability & Efficiency: Track the actual visible changes
                 let streamingContainer = null;
 
                 // Helper: Schedule update on next animation frame (syncs with browser repaint)
@@ -454,11 +455,19 @@ export default function GrapesEditor() {
                         editor.select(streamingContainer);
                       }
 
-                      // 2. Update the RAW element inside the container (fast, skips GrapesJS parsing overhead)
+                      // 2. Update the RAW element inside the container (SMART SYNC to avoid flickering)
                       const el = streamingContainer.getEl();
                       if (el && latestHTML) {
-                        // Prevent GrapesJS from trying to parse this as components during the stream
-                        el.innerHTML = latestHTML;
+                        // PRE-CLEAN: Handle partial tags and markdown only when rendering (more efficient)
+                        const cleanedPreview = cleanStreamingHTML(latestHTML);
+
+                        // EFFICIENCY CHECK: Only touch the DOM if the CLEANED preview changed
+                        if (cleanedPreview !== lastCleanedPreview || isFinal) {
+                          lastCleanedPreview = cleanedPreview;
+                          const temp = document.createElement('div');
+                          temp.innerHTML = cleanedPreview;
+                          syncDOMNodes(temp, el);
+                        }
                       }
 
                       // 3. On finalization, replace the container with final GrapesJS components
@@ -485,22 +494,8 @@ export default function GrapesEditor() {
                 const cleanedHTML = await streamFn(originalHTML, userRequest, imageFile, imageUrl, openRouterModel, (chunk, isComplete) => {
                   accumulatedHTML += chunk;
 
-                  // Efficient live preview cleaning: Strip markdown and trailing partial tags
-                  let htmlToPreview = accumulatedHTML;
-                  const firstTag = htmlToPreview.indexOf('<');
-                  if (firstTag !== -1) {
-                    const lastOpen = htmlToPreview.lastIndexOf('<');
-                    const lastClose = htmlToPreview.lastIndexOf('>');
-
-                    // Slice from first tag to start of any unclosed trailing tag
-                    htmlToPreview = htmlToPreview.substring(
-                      firstTag,
-                      lastOpen > lastClose ? lastOpen : undefined
-                    ).replace(/```\s*$/i, '').trim();
-                  }
-
-                  if (isComplete || (htmlToPreview && htmlToPreview !== latestHTML)) {
-                    latestHTML = htmlToPreview || latestHTML;
+                  if (isComplete || (accumulatedHTML && accumulatedHTML !== latestHTML)) {
+                    latestHTML = accumulatedHTML;
                     scheduleUpdate(isComplete);
                   }
                 });
@@ -1266,6 +1261,63 @@ async function streamOpenRouterAI(originalHTML, userRequest, imageFile, imageUrl
   } catch (error) {
     console.error("❌ OpenRouter AI Stream Error:", error);
     throw new Error(`OpenRouter streaming failed: ${error.message}`);
+  }
+}
+
+//======================================================================
+// STREAMING UTILS (Enhanced for Efficiency & Reusability)
+//======================================================================
+
+/**
+ * Strips partial tags and markdown from a streaming HTML string.
+ */
+function cleanStreamingHTML(html) {
+  const firstTag = html.indexOf('<');
+  if (firstTag === -1) return '';
+
+  let result = html.substring(firstTag);
+
+  // Minimal logic: Strip trailing incomplete tags (e.g., "<div" or "</p")
+  const lastOpen = result.lastIndexOf('<');
+  const lastClose = result.lastIndexOf('>');
+  if (lastOpen > lastClose) {
+    result = result.substring(0, lastOpen);
+  }
+
+  return result.replace(/```\s*$/i, '').trim();
+}
+
+/**
+ * Minimal recursive DOM syncing to prevent flickering.
+ */
+function syncDOMNodes(src, dest) {
+  const sNodes = src.childNodes;
+  const dNodes = dest.childNodes;
+
+  for (let i = 0; i < sNodes.length; i++) {
+    const s = sNodes[i];
+    const d = dNodes[i];
+
+    if (!d) {
+      dest.appendChild(s.cloneNode(true));
+    } else if (s.nodeType !== d.nodeType || s.nodeName !== d.nodeName) {
+      dest.replaceChild(s.cloneNode(true), d);
+    } else if (s.nodeType === 3) { // Text node
+      if (d.nodeValue !== s.nodeValue) d.nodeValue = s.nodeValue;
+    } else if (s.outerHTML !== d.outerHTML) {
+      // Recurse for elements that partially changed
+      // We check outerHTML to see if we need to recurse (standard sync pattern)
+      if (i === sNodes.length - 1 || s.children.length < 10) {
+        syncDOMNodes(s, d);
+      } else {
+        dest.replaceChild(s.cloneNode(true), d);
+      }
+    }
+  }
+
+  // Cleanup extra nodes
+  while (dest.childNodes.length > sNodes.length) {
+    dest.removeChild(dest.lastChild);
   }
 }
 
