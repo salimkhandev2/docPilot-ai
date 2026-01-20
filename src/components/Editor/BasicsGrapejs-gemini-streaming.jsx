@@ -60,7 +60,7 @@ export default function GrapesEditor() {
   const [showPDFCustomModal, setShowPDFCustomModal] = useState(false);
   const [customWidth, setCustomWidth] = useState('210');
   const [customHeight, setCustomHeight] = useState('297');
-  const [pdfPageHeight, setPdfPageHeight] = useState(1123); // Default to A4 px height
+  const [pdfPageHeight, setPdfPageHeight] = useState(1122.5); // Fixed: Precision height for A4 (297mm @ 96 DPI)
   const [customUnit, setCustomUnit] = useState('mm');
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
@@ -377,7 +377,7 @@ export default function GrapesEditor() {
             imageUrl: '',
             imagePreview: null,
             aiProvider: 'openrouter',
-            openRouterModel: OPENROUTER_MODELS[2], // Select Alibaba model
+            openRouterModel: OPENROUTER_MODELS[4], // Select Alibaba model
             onSubmit: async (userRequest, imageFile, imageUrl, aiProvider, openRouterModel) => {
               if (!userRequest.trim()) {
                 alert('Please enter a request');
@@ -756,6 +756,7 @@ export default function GrapesEditor() {
               <span>PDF Page Height (px):</span>
               <input
                 type="number"
+                step="0.5"
                 value={pdfPageHeight || ''}
                 onChange={(e) => setPdfPageHeight(Number(e.target.value))}
                 style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #d1d5db', fontSize: '12px', width: '80px' }}

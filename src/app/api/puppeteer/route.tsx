@@ -116,11 +116,40 @@ export async function POST(request: NextRequest) {
                 const style = document.createElement('style');
                 style.id = 'playwright-pdf-override';
                 style.textContent = `
-                    @page {
-                        size: 210mm 297mm !important; 
+                    /* 1. Global Level Resets - Kill Browser Margins */
+                    html, body {
                         margin: 0 !important;
-                        ${bg?.backgroundColor ? `background-color: ${bg.backgroundColor} !important;` : ''}
+                        padding: 0 !important;
+                        width: 210mm !important;
+                        height: 100% !important;
+                        -webkit-print-color-adjust: exact;
+                        font-smoothing: antialiased;
+                        text-rendering: geometricPrecision;
                     }
+
+                    /* 2. Kill Smart Pagination Logic - "Dumb" Mode */
+                    /* Force the engine to allow breaks anywhere, even slicing text lines */
+                    * {
+                        widows: 1 !important;
+                        orphans: 1 !important;
+                        break-inside: auto !important;
+                        page-break-inside: auto !important;
+                        break-before: auto !important;
+                        break-after: auto !important;
+                    }
+
+                    /* 3. Define PDF page settings */
+                    @page {
+                        size: A4;
+                        margin: 0 !important;
+  /*
+  ${bg?.backgroundColor
+                        ? `background-color: ${bg.backgroundColor} !important;`
+                        : ''}
+  */
+                        background-color: #ffffff !important;
+                    }
+
                     .visual-page {
                         margin: 0 !important; 
                         padding: 0mm !important;
@@ -130,6 +159,7 @@ export async function POST(request: NextRequest) {
                         box-sizing: border-box !important;
                         position: relative !important;
                         background-color: transparent !important;
+                        width: 210mm !important;
                     }
                     .content {
                         width: 210mm !important;
@@ -149,14 +179,8 @@ export async function POST(request: NextRequest) {
             await new Promise(resolve => setTimeout(resolve, 2000));
 
             const pdfBuffer = await page.pdf({
-                format: 'A4',
+                preferCSSPageSize: true,
                 printBackground: true,
-                margin: {
-                    top: '0mm',
-                    bottom: '0mm',
-                    left: '0mm',
-                    right: '0mm'
-                },
                 scale: 1,
             });
 

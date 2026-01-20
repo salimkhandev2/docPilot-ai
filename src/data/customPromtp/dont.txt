@@ -167,3 +167,5 @@ Rules (break any = failure):
 - Output ONLY the complete code. No fences. No explanation. No extra text.
 
 Deliver the most refined, slightly fancy professional resume ever crafted with pure Tailwind.
+
+
