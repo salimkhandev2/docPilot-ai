@@ -87,14 +87,14 @@ const extractScripts = (html: string, preserveTailwindCdn: boolean = false) => {
   const scriptRegex = new RegExp(SCRIPT_REGEX.source, SCRIPT_REGEX.flags);
   while ((match = scriptRegex.exec(html))) {
     const scriptTag = match[0];
-    
+
     // Preserve Tailwind CDN script if requested
     if (preserveTailwindCdn && TAILWIND_CDN_REGEX.test(scriptTag)) {
       continue;
     }
-    
+
     const srcMatch = scriptTag.match(/src=["']([^"']+)["']/i);
-    
+
     if (srcMatch) {
       externalScripts.push({ src: srcMatch[1], tag: scriptTag });
     } else {
@@ -103,7 +103,7 @@ const extractScripts = (html: string, preserveTailwindCdn: boolean = false) => {
         inlineScripts.push({ content: contentMatch[1], tag: scriptTag });
       }
     }
-    
+
     htmlWithoutScripts = htmlWithoutScripts.replace(scriptTag, "");
   }
 
@@ -151,7 +151,7 @@ const buildHtmlDocument = (
 // Robust wait function with progressive fallback strategy
 const waitForPageReady = async (page: any, timeout: number = 180000) => {
   const startTime = Date.now();
-  
+
   try {
     // Strategy 1: Wait for load event (fastest, most reliable)
     await Promise.race([
@@ -164,7 +164,7 @@ const waitForPageReady = async (page: any, timeout: number = 180000) => {
           }
         });
       }),
-      new Promise((_, reject) => 
+      new Promise((_, reject) =>
         setTimeout(() => reject(new Error("Load timeout")), Math.min(timeout, 60000))
       ),
     ]);
@@ -208,7 +208,7 @@ const waitForPageReady = async (page: any, timeout: number = 180000) => {
             checkIdle();
           });
         }),
-        new Promise((_, reject) => 
+        new Promise((_, reject) =>
           setTimeout(() => reject(new Error("Network idle timeout")), Math.min(remainingTime, 30000))
         ),
       ]);
@@ -220,7 +220,7 @@ const waitForPageReady = async (page: any, timeout: number = 180000) => {
   // Strategy 3: Final wait for any remaining dynamic content
   const finalWaitTime = timeout - (Date.now() - startTime);
   if (finalWaitTime > 1000) {
-    await new Promise((resolve) => 
+    await new Promise((resolve) =>
       setTimeout(resolve, Math.min(finalWaitTime, 3000))
     );
   }
@@ -234,7 +234,7 @@ const retryOperation = async <T>(
   operationName: string = "operation"
 ): Promise<T> => {
   let lastError: Error | unknown;
-  
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       return await operation();
@@ -247,7 +247,7 @@ const retryOperation = async <T>(
       }
     }
   }
-  
+
   throw lastError;
 };
 
@@ -263,7 +263,7 @@ export async function POST(req: Request) {
   try {
     const payload = (await req.json()) as RenderPayload;
     const { html, css, tailwindConfig } = payload || {};
-    
+
     if (!html || typeof html !== "string") {
       return new Response(JSON.stringify({ error: "Missing 'html' in body" }), {
         status: 400,
@@ -274,65 +274,65 @@ export async function POST(req: Request) {
     // Estimate document size to adjust timeouts dynamically
     const docSize = estimateDocumentSize(html);
     const baseTimeout = docSize === "large" ? 240000 : docSize === "medium" ? 180000 : 120000;
-    
+
     const isProd =
       process.env.NODE_ENV === "production" ||
       process.env.VERCEL_ENV === "production";
 
     const browser = isProd
       ? await retryOperation(
-          async () => {
-            const puppeteer = await import("puppeteer-core");
-            const executablePath = await chromium.executablePath(
-              "https://github.com/Sparticuz/chromium/releases/download/v133.0.0/chromium-v133.0.0-pack.tar",
-            );
-            return puppeteer.default.launch({
-              args: [...chromium.args, "--disable-dev-shm-usage", "--disable-gpu"],
-              executablePath,
-              headless: true,
-            });
-          },
-          3,
-          2000,
-          "Browser launch"
-        )
+        async () => {
+          const puppeteer = await import("puppeteer-core");
+          const executablePath = await chromium.executablePath(
+            "https://github.com/Sparticuz/chromium/releases/download/v133.0.0/chromium-v133.0.0-pack.tar",
+          );
+          return puppeteer.default.launch({
+            args: [...chromium.args, "--disable-dev-shm-usage", "--disable-gpu"],
+            executablePath,
+            headless: true,
+          });
+        },
+        3,
+        2000,
+        "Browser launch"
+      )
       : await retryOperation(
-          () => (
-            import("puppeteer")
-          ).then((puppeteer) =>
-            puppeteer.default.launch({
-              headless: true,
-              args: [
-                "--no-sandbox",
-                "--disable-setuid-sandbox",
-                "--disable-dev-shm-usage",
-                "--disable-gpu",
-                "--disable-software-rasterizer",
-              ],
-              executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
-            })
-          ),
-          3,
-          2000,
-          "Browser launch"
-        );
-    
+        () => (
+          import("puppeteer")
+        ).then((puppeteer) =>
+          puppeteer.default.launch({
+            headless: true,
+            args: [
+              "--no-sandbox",
+              "--disable-setuid-sandbox",
+              "--disable-dev-shm-usage",
+              "--disable-gpu",
+              "--disable-software-rasterizer",
+            ],
+            executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
+          })
+        ),
+        3,
+        2000,
+        "Browser launch"
+      );
+
     const page = await browser.newPage();
-    
+
     // Set timeouts based on document size
     page.setDefaultTimeout(baseTimeout);
     page.setDefaultNavigationTimeout(baseTimeout);
-    
+
     await page.setViewport({ width: 794, height: 1123, deviceScaleFactor: 2 });
 
     const { sanitizedHtml, configScript: parsedConfigScript } =
       extractTailwindConfig(html);
     const effectiveConfig = tailwindConfig || parsedConfigScript;
     const tailwindConfigTag = buildTailwindConfigTag(effectiveConfig);
-    
+
     // Extract scripts from the original HTML before building document
     const { externalScripts, inlineScripts } = extractScripts(sanitizedHtml);
-    
+
     const htmlDocument = buildHtmlDocument(
       sanitizedHtml,
       css,
@@ -346,7 +346,7 @@ export async function POST(req: Request) {
         waitUntil: ["load", "domcontentloaded"],
         timeout: baseTimeout,
       });
-      
+
       // Then use our custom robust wait function
       await waitForPageReady(page, baseTimeout);
     } catch (error) {
@@ -384,7 +384,7 @@ export async function POST(req: Request) {
         }
         return;
       }
-// 
+      // 
       const script = scripts[index];
       try {
         // Check if script already exists
@@ -408,7 +408,7 @@ export async function POST(req: Request) {
         console.warn(`Failed to load script ${script.src}: ${error instanceof Error ? error.message : String(error)}`);
         // Continue with other scripts
       }
-      
+
       await loadScriptsSequentially(scripts, index + 1);
     };
 
@@ -457,7 +457,7 @@ export async function POST(req: Request) {
     } catch (error) {
       console.warn("Error closing page:", error);
     }
-    
+
     try {
       await browser.close();
     } catch (error) {

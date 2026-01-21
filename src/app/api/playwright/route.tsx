@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { browserPool } from '../../../lib/browserPool';
+import fs from 'fs';
+import path from 'path';
 
 export async function POST(request: NextRequest) {
     try {
@@ -46,6 +48,15 @@ export async function POST(request: NextRequest) {
 </body>
 </html>
         `;
+
+            // Save the HTML for debugging/reference
+            try {
+                const exportPath = path.join(process.cwd(), 'src/app/api/playwright/latest_export.html');
+                fs.writeFileSync(exportPath, fullHTML);
+                console.log('✅ HTML exported to:', exportPath);
+            } catch (err) {
+                console.error('❌ Failed to save HTML export:', err);
+            }
 
             // Set content
             await page.setContent(fullHTML, {
@@ -108,8 +119,6 @@ export async function POST(request: NextRequest) {
             });
 
             console.log('PDF Background Color:', pdfbg?.backgroundColor || 'Not found');
-
-
 
             // Inject CSS to set page size and overrides
             await page.evaluate((bg: any) => {

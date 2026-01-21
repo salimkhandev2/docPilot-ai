@@ -665,7 +665,7 @@ export default function GrapesEditor() {
         console.warn('⚠️ No markers found! HTML captured:', html.substring(0, 100));
       }
 
-      // Convert camelCase CSS properties to kebab-case (CRITICAL for Puppeteer)
+      // Convert camelCase CSS properties to kebab-case (CRITICAL for Playwright)
       css = css.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
 
       const size = PAGE_SIZES[pageSize]?.[orientation];
@@ -685,7 +685,7 @@ export default function GrapesEditor() {
         ],
       };
 
-      const response = await fetch('/api/puppeteer', {
+      const response = await fetch('/api/playwright', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

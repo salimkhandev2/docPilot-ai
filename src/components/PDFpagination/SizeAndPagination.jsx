@@ -101,7 +101,7 @@ export default function VisualPaginationEditor() {
 
                 page.append(`
                     <div>
-                        When you print or export to PDF, Puppeteer will use these exact dimensions and automatically handle text splitting and page breaks.
+                        When you print or export to PDF, Playwright will use these exact dimensions and automatically handle text splitting and page breaks.
                         <div id='id_12'>Hello</div>
                     </div>
                 `);
@@ -163,7 +163,7 @@ export default function VisualPaginationEditor() {
             const oldStyle = frameDoc.getElementById('print-styles');
             if (oldStyle) oldStyle.remove();
 
-            // NOTE: server-side Puppeteer will override this
+            // NOTE: server-side Playwright will override this
             const printStyle = `
                 @media print {
                     @page {
@@ -355,7 +355,7 @@ export default function VisualPaginationEditor() {
                 }
             };
 
-            const response = await fetch('/api/puppeteer', {
+            const response = await fetch('/api/playwright', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
