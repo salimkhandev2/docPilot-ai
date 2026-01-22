@@ -169,3 +169,18 @@ Rules (break any = failure):
 Deliver the most refined, slightly fancy professional resume ever crafted with pure Tailwind.
 
 
+     html, body {
+            -webkit-print-color-adjust: exact;
+            font-smoothing: antialiased;
+            text-rendering: optimizeLegibility;
+            line-height: 1.2;
+            font-size: 16px !important;
+          }
+          * {
+            line-break: strict;
+            overflow-wrap: break-word;
+          }
+          p, h1, h2, h3, h4, h5, h6 {
+            margin-top: 0 !important;
+            margin-bottom: 10px !important;
+          }

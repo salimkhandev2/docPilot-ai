@@ -132,12 +132,8 @@ export async function POST(request: NextRequest) {
                         width: 210mm !important;
                         height: 100% !important;
                         -webkit-print-color-adjust: exact;
-                        font-smoothing: antialiased;
-                        text-rendering: geometricPrecision;
                     }
 
-                    /* 2. Kill Smart Pagination Logic - "Dumb" Mode */
-                    /* Force the engine to allow breaks anywhere, even slicing text lines */
                     * {
                         widows: 1 !important;
                         orphans: 1 !important;
@@ -147,7 +143,6 @@ export async function POST(request: NextRequest) {
                         break-after: auto !important;
                     }
 
-                    /* 3. Define PDF page settings */
                     @page {
                         size: A4;
                         margin: 0 !important;
@@ -159,24 +154,6 @@ export async function POST(request: NextRequest) {
                         background-color: #ffffff !important;
                     }
 
-                    .visual-page {
-                        margin: 0 !important; 
-                        padding: 0mm !important;
-                        border: none !important;
-                        box-shadow: none !important;
-                        max-width: none !important;
-                        box-sizing: border-box !important;
-                        position: relative !important;
-                        background-color: transparent !important;
-                        width: 210mm !important;
-                    }
-                    .content {
-                        width: 210mm !important;
-                        max-width: 210mm !important;
-                        min-width: 210mm !important;
-                        padding: 0px !important;
-                        margin: 0 !important;
-                    }
                     .page-break-indicator {
                         display: block !important;
                     }

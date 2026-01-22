@@ -113,10 +113,13 @@ STRICT RULES:
 - When cloning a UI from an image, use Tailwind CSS for layout/structure.
 - For style modifications to existing HTML, prefer inline CSS over adding new Tailwind classes.
 - Return a single HTML output only.
+- DO NOT add any CSS or Tailwind classes to make the layout responsive (like md:, lg:, hidden sm:block, etc.). The target is a fixed A4 document, so use standard layout classes only.
 - DO NOT use \\\html or \\\ code blocks.
 - DO NOT include <!DOCTYPE>, <html>, <head>, or <body> tags.
 - Preserve all id and class attributes unless instructed otherwise.
 - DO NOT add any animations, transitions, or hover effects (no scale, transform, transition, hover: classes, etc.).
+- NEVER add horizontal scrolling (overflow-x: scroll/auto). Horizontal scrolling cannot be read in a PDF. Instead, use text wrapping (word-break, overflow-wrap), flexible layouts (flex-wrap: wrap), or adjust widths and font sizes to ensure all content fits within the fixed A4 width (210mm).
+
 Generate the modified HTML now:`;
     } else if (customPrompt) {
       // Custom prompt (for image analysis or other use cases)

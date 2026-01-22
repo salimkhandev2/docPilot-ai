@@ -49,6 +49,35 @@ const PAGE_SIZES = {
   },
 };
 
+const DOCUMENT_STRICT_STYLES = `
+  /* Force everything to stay within boundaries */
+  * {
+      box-sizing: border-box !important;
+      max-width: 100% !important;
+      overflow-wrap: break-word !important; 
+      word-break: break-word !important;
+  }
+
+  img, video, canvas {
+      max-width: 100% !important;
+      height: auto !important;
+  }
+
+  table {
+      width: 100% !important;
+      table-layout: fixed !important; 
+  }
+
+  td, th {
+      word-break: break-word !important;
+      white-space: normal !important;
+  }
+
+  .visual-page {
+      overflow: hidden !important; 
+  }
+`;
+
 export default function GrapesEditor() {
   const editorRef = useRef(null);
   const blobURLsRef = useRef(new Set());
@@ -69,10 +98,16 @@ export default function GrapesEditor() {
   const [modalData, setModalData] = useState({ userRequest: '', imageFile: null, imageUrl: '', imagePreview: null, aiProvider: 'gemini', openRouterModel: OPENROUTER_MODELS[0], onSubmit: null, onCancel: null });
   const modalCallbacksRef = useRef({ setShowModal, setModalData });
 
-  // Update ref when state setters change
+  // State Refs to avoid stale closures in GrapesJS events
+  const pageSizeRef = useRef(pageSize);
+  const orientationRef = useRef(orientation);
+
+  // Update ref when state changes
   useEffect(() => {
+    pageSizeRef.current = pageSize;
+    orientationRef.current = orientation;
     modalCallbacksRef.current = { setShowModal, setModalData };
-  }, []);
+  }, [pageSize, orientation]);
 
   useEffect(() => {
     if (!editorRef.current) return;
@@ -163,14 +198,14 @@ export default function GrapesEditor() {
           hoverable: false,
           style: {
             width: '210mm',
-            maxWidth: '210mm',
-            minWidth: '210mm',
+            'max-width': '210mm',
+            'min-width': '210mm',
             margin: '0 auto',
             background: 'white',
             padding: '0px',
             position: 'relative',
             display: 'flow-root',
-            overflowAnchor: 'none',
+            'overflow-anchor': 'none',
           },
         },
       },
@@ -182,16 +217,13 @@ export default function GrapesEditor() {
       wrapper.setStyle({
         background: 'black',
         padding: '80px 20px 40px',
-        minHeight: '100vh',
+        'min-height': '100vh',
       });
 
       if (!wrapper.find('.visual-page').length) {
         const firstPage = wrapper.append({ type: 'visual-page' });
         const page = Array.isArray(firstPage) ? firstPage[0] : firstPage;
 
-        // Use defaultHtml content if available, otherwise default text
-        // If defaultHtml is an array of components, we append them. 
-        // If it's a string, we append it as content.
         if (defaultHtml) {
           page.components(defaultHtml);
         } else {
@@ -244,31 +276,35 @@ export default function GrapesEditor() {
       const frameDoc = editor.Canvas.getDocument();
       if (!frameDoc) return;
 
-      const oldStyle = frameDoc.getElementById('print-styles');
+      const oldStyle = frameDoc.getElementById('document-behavior-styles');
       if (oldStyle) oldStyle.remove();
 
-      const printStyle = `
+      // GLOBAL BEHAVIOR: Force everything to stay within boundaries
+      const behaviorStyle = `
+            ${DOCUMENT_STRICT_STYLES}
+
             @media print {
                 @page {
-                    size: A4; /* Default fallback */
+                    size: ${sizeKey === 'A4' ? 'A4' : sizeKey};
+                    margin: 0;
                 }
-                .content {
-                    width: ${size.width};
-                    margin: 0 auto;
-                    background: white;
-                    display: flow-root;
-                }
-              
                 body {
-                    background: black;
+                    margin: 0;
                     padding: 0;
+                    background: white;
+                }
+                .visual-page {
+                    width: ${size.width} !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    box-shadow: none !important;
                 }
             }
         `;
 
       const styleEl = frameDoc.createElement('style');
-      styleEl.id = 'print-styles';
-      styleEl.textContent = printStyle;
+      styleEl.id = 'document-behavior-styles';
+      styleEl.textContent = behaviorStyle;
       frameDoc.head.appendChild(styleEl);
     }
 
@@ -303,6 +339,9 @@ export default function GrapesEditor() {
         // tailwindScript.src = "https://cdn.tailwindcss.com";
         frameDoc.head.appendChild(tailwindScript);
       }
+
+      // Re-apply document behaviors on frame load using the latest values
+      addPrintStyles(pageSizeRef.current, orientationRef.current);
 
       // Add Tailwind config
       const hasTailwindConfig = frameDoc.querySelector('script[data-tailwind-config]');
@@ -659,11 +698,8 @@ export default function GrapesEditor() {
       html = await convertBlobURLsToBase64(html);
       let css = editor.getCss();
 
-      // DEBUG: Check if markers are in the HTML
-      const markerCount = (html.match(/page-break-indicator/g) || []).length;
-      if (markerCount === 0) {
-        console.warn('⚠️ No markers found! HTML captured:', html.substring(0, 100));
-      }
+      // Ensure the strict document behavior is included in the PDF CSS
+      css = DOCUMENT_STRICT_STYLES + "\n" + css;
 
       // Convert camelCase CSS properties to kebab-case (CRITICAL for Playwright)
       css = css.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
