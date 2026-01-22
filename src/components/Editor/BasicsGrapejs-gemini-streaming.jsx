@@ -54,8 +54,10 @@ const DOCUMENT_STRICT_STYLES = `
   * {
       box-sizing: border-box !important;
       max-width: 100% !important;
-      overflow-wrap: break-word !important; 
-      word-break: break-word !important;
+      overflow-wrap: anywhere !important; 
+      word-break: break-all !important;
+      white-space: normal !important;
+      min-width: 0 !important;
   }
 
   img, video, canvas {
@@ -69,7 +71,7 @@ const DOCUMENT_STRICT_STYLES = `
   }
 
   td, th {
-      word-break: break-word !important;
+      word-break: break-all !important;
       white-space: normal !important;
   }
 
@@ -411,7 +413,7 @@ export default function GrapesEditor() {
           const callbacks = modalCallbacksRef.current;
 
           callbacks.setModalData({
-            userRequest: 'Create a professional two-column resume for Salim Khan as a Full Stack Developer. The left column should include a professional profile photo (rounded or circular), contact details, and clearly grouped skills (Frontend, Backend, Database, Tools). The right column should contain a concise professional summary (2–3 lines), practical project-based experience, work history, and education. Use a modern, clean, ATS-friendly design with professional colours like dark blue, grey, or black, and easy-to-read fonts. The resume should be job-ready and suitable for full stack developer roles.',
+            userRequest: 'Create an extremely complex, 3-page long visual psychology report exploring core concepts of human behavior, cognition, emotions, and decision-making. The document should synthesize topics like perception, motivation, habits, biases, emotional intelligence, and personality into a cohesive, modern visual narrative. STRESS TEST REQUIREMENTS: 1) Structure the content into 30–40 distinct psychology concepts, each with a heading, concise explanation, real-life example, and reflective insight to force multiple automated page breaks and validate marker accuracy. 2) Use advanced CSS techniques including nested grids, multi-layer sections, asymmetric layouts, sticky visual anchors, and semi-transparent glassmorphism panels. 3) Include abstract data-style visuals such as behavioral scales, cognitive flow bars, emotional intensity indicators, and timeline dividers — no tables allowed. 4) Insert multiple ultra-long unbreakable strings (e.g., simulated neural hash codes or raw 256-bit identifiers) to aggressively test word-break, overflow, and clipping logic. 5) Integrate high-resolution abstract imagery, psychology-themed icons, and rich typographic hierarchy in every section to stress-test asset loading, rendering order, and PDF export fidelity. The goal is to aggressively push layout, pagination, and rendering limits while maintaining intellectual clarity and visual depth.',
             imageFile: null,
             imageUrl: '',
             imagePreview: null,
