@@ -58,12 +58,14 @@ const DOCUMENT_STRICT_STYLES = `
       word-break: break-all !important;
       white-space: normal !important;
       min-width: 0 !important;
+      scrollbar-width: none !important; /* Firefox */
   }
 
-  img, video, canvas {
-      max-width: 100% !important;
-      height: auto !important;
+  /* Hide scrollbars for Chrome, Safari and Opera */
+  *::-webkit-scrollbar {
+      display: none !important;
   }
+
 
   table {
       width: 100% !important;
@@ -413,7 +415,7 @@ export default function GrapesEditor() {
           const callbacks = modalCallbacksRef.current;
 
           callbacks.setModalData({
-            userRequest: 'Create an extremely complex, 3-page long visual psychology report exploring core concepts of human behavior, cognition, emotions, and decision-making. The document should synthesize topics like perception, motivation, habits, biases, emotional intelligence, and personality into a cohesive, modern visual narrative. STRESS TEST REQUIREMENTS: 1) Structure the content into 30–40 distinct psychology concepts, each with a heading, concise explanation, real-life example, and reflective insight to force multiple automated page breaks and validate marker accuracy. 2) Use advanced CSS techniques including nested grids, multi-layer sections, asymmetric layouts, sticky visual anchors, and semi-transparent glassmorphism panels. 3) Include abstract data-style visuals such as behavioral scales, cognitive flow bars, emotional intensity indicators, and timeline dividers — no tables allowed. 4) Insert multiple ultra-long unbreakable strings (e.g., simulated neural hash codes or raw 256-bit identifiers) to aggressively test word-break, overflow, and clipping logic. 5) Integrate high-resolution abstract imagery, psychology-themed icons, and rich typographic hierarchy in every section to stress-test asset loading, rendering order, and PDF export fidelity. The goal is to aggressively push layout, pagination, and rendering limits while maintaining intellectual clarity and visual depth.',
+            userRequest: "Make a resume for Salim Khan as a Data Scientist, highlighting expertise in data analysis, statistical modeling, machine learning, data visualization, Python/R, SQL, data pipelines, exploratory data analysis (EDA), predictive modeling, and real-world business problem solving with clear project impact and measurable results.",
             imageFile: null,
             imageUrl: '',
             imagePreview: null,
