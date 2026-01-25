@@ -1,5 +1,5 @@
 export const defaultHtml = `
-<div>
+<div style="padding-left:6px; padding-right:6px;">
   <!-- 
     Replace this with your generated content.
     Do NOT add any padding or margins.

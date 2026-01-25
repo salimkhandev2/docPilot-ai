@@ -54,11 +54,13 @@ const DOCUMENT_STRICT_STYLES = `
   * {
       box-sizing: border-box !important;
       max-width: 100% !important;
-      overflow-wrap: anywhere !important; 
-      word-break: break-all !important;
+      word-break: normal;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
+      hyphens: auto;
       white-space: normal !important;
-      min-width: 0 !important;
       scrollbar-width: none !important; /* Firefox */
+      min-width: 0 !important;
   }
 
   /* Hide scrollbars for Chrome, Safari and Opera */
@@ -82,6 +84,7 @@ const DOCUMENT_STRICT_STYLES = `
   }
 `;
 
+
 export default function GrapesEditor() {
   const editorRef = useRef(null);
   const blobURLsRef = useRef(new Set());
@@ -93,7 +96,7 @@ export default function GrapesEditor() {
   const [showPDFCustomModal, setShowPDFCustomModal] = useState(false);
   const [customWidth, setCustomWidth] = useState('210');
   const [customHeight, setCustomHeight] = useState('297');
-  const [pdfPageHeight, setPdfPageHeight] = useState(1122.5); // Fixed: Precision height for A4 (297mm @ 96 DPI)
+  const [pdfPageHeight, setPdfPageHeight] = useState(1122.5); // Dynamically calculated from physical units
   const [customUnit, setCustomUnit] = useState('mm');
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
@@ -170,7 +173,7 @@ export default function GrapesEditor() {
 
               console.log(`✅ Image uploaded as blob: ${file.name}`);
             } catch (error) {
-              console.error(`Failed to load ${file.name}:`, error);
+              console.error(`Failed to load ${file.name}: `, error);
             }
           });
         }
@@ -232,10 +235,10 @@ export default function GrapesEditor() {
           page.components(defaultHtml);
         } else {
           page.append(`
-                    <div>
-                        Start typing your content here...
-                    </div>
-                `);
+  <div>
+  Start typing your content here...
+  </div>
+  `);
         }
       }
 
@@ -247,7 +250,7 @@ export default function GrapesEditor() {
     // Helper Functions
     function convertToPixels(cssValue, frameDoc) {
       const testEl = frameDoc.createElement('div');
-      testEl.style.cssText = `position: absolute; visibility: hidden; height: ${cssValue};`;
+      testEl.style.cssText = `position: absolute; visibility: hidden; height: ${cssValue}; `;
       frameDoc.body.appendChild(testEl);
       const pixels = testEl.offsetHeight;
       frameDoc.body.removeChild(testEl);
@@ -258,19 +261,30 @@ export default function GrapesEditor() {
       const size = PAGE_SIZES[sizeKey]?.[orient];
       if (!size) return;
 
+      const frameDoc = editor.Canvas.getDocument();
+      if (frameDoc) {
+        const heightPx = convertToPixels(size.height, frameDoc);
+        setPdfPageHeight(heightPx);
+      }
+
       const wrapper = editor.getWrapper();
       const pages = wrapper.find('.visual-page');
 
       pages.forEach(page => {
         page.addStyle({
           width: size.width,
+          'min-width': size.width,
+          'max-width': size.width,
         });
       });
 
       addPrintStyles(sizeKey, orient);
-      if (editorRef.current?.updateMarkers) {
-        editorRef.current.updateMarkers();
-      }
+      // Wait a bit for the layout to settle before updating markers
+      setTimeout(() => {
+        if (editor.updateMarkers) {
+          editor.updateMarkers();
+        }
+      }, 50);
     }
 
     function addPrintStyles(sizeKey, orient) {
@@ -287,24 +301,27 @@ export default function GrapesEditor() {
       const behaviorStyle = `
             ${DOCUMENT_STRICT_STYLES}
 
-            @media print {
-                @page {
-                    size: ${sizeKey === 'A4' ? 'A4' : sizeKey};
-                    margin: 0;
-                }
-                body {
-                    margin: 0;
-                    padding: 0;
-                    background: white;
-                }
-                .visual-page {
-                    width: ${size.width} !important;
-                    margin: 0 !important;
-                    padding: 0 !important;
-                    box-shadow: none !important;
-                }
-            }
-        `;
+@media print {
+  @page {
+    size: ${(sizeKey === 'A4' || sizeKey === 'LETTER') ? sizeKey : `${size.width} ${size.height}`};
+    margin: 0;
+  }
+body {
+    margin: 0;
+    padding: 0;
+    background: white;
+  }
+.visual-page {
+    width: ${size.width} !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+.page-break-indicator {
+    display: none !important;
+  }
+}
+`;
 
       const styleEl = frameDoc.createElement('style');
       styleEl.id = 'document-behavior-styles';
@@ -353,20 +370,20 @@ export default function GrapesEditor() {
         const tailwindConfig = frameDoc.createElement("script");
         tailwindConfig.setAttribute("data-tailwind-config", "true");
         tailwindConfig.textContent = `
-          if (typeof tailwind !== 'undefined') {
-            tailwind.config = {
-              content: {
-                files: [],
-                extract: {
-                  html: () => document.body.innerHTML
-                }
-              },
-              safelist: [
-                { pattern: /./ }
-              ]
-            };
-          }
-        `;
+if (typeof tailwind !== 'undefined') {
+  tailwind.config = {
+    content: {
+      files: [],
+      extract: {
+        html: () => document.body.innerHTML
+      }
+    },
+    safelist: [
+      { pattern: /./ }
+    ]
+  };
+}
+`;
         frameDoc.head.appendChild(tailwindConfig);
       }
     });
@@ -415,7 +432,7 @@ export default function GrapesEditor() {
           const callbacks = modalCallbacksRef.current;
 
           callbacks.setModalData({
-            userRequest: "Make a resume for Salim Khan as a Data Scientist, highlighting expertise in data analysis, statistical modeling, machine learning, data visualization, Python/R, SQL, data pipelines, exploratory data analysis (EDA), predictive modeling, and real-world business problem solving with clear project impact and measurable results.",
+            userRequest: "Make a professional Cyber Security resume for Salim Khan, highlighting expertise in network security, ethical hacking, threat intelligence, incident response, vulnerability assessment, cloud security (AWS/Azure), penetration testing tools, and industry certifications like CISSP or CEH. Focus on technical skills, project impact, and security-first mindset.",
             imageFile: null,
             imageUrl: '',
             imagePreview: null,
@@ -636,31 +653,31 @@ export default function GrapesEditor() {
           const marker = frameDoc.createElement('div');
           marker.className = 'page-break-indicator';
           marker.style.cssText = `
-            position: absolute;
-            left: 0;
-            right: 0;
-            top: ${i * pageHeight}px;
-            height: 2px;
-            background: repeating-linear-gradient(90deg, #ff4444 0, #ff4444 15px, transparent 15px, transparent 30px);
-            pointer-events: none;
-            z-index: 9999;
-          `;
+position: absolute;
+left: 0;
+right: 0;
+top: ${i * pageHeight}px;
+height: 2px;
+background: repeating-linear-gradient(90deg, #ff4444 0, #ff4444 15px, transparent 15px, transparent 30px);
+pointer-events: none;
+z-index: 9999;
+`;
 
           const label = frameDoc.createElement('span');
           label.textContent = `PAGE ${i + 1} START`;
           label.style.cssText = `
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
-            top: -10px;
-            background: #ff4444;
-            color: white;
-            padding: 2px 8px;
-            font-size: 10px;
-            font-weight: bold;
-            border-radius: 4px;
-            white-space: nowrap;
-          `;
+position: absolute;
+left: 50 %;
+transform: translateX(-50 %);
+top: -10px;
+background: #ff4444;
+color: white;
+padding: 2px 8px;
+font-size: 10px;
+font-weight: bold;
+border-radius: 4px;
+white-space: nowrap;
+`;
 
           marker.appendChild(label);
           el.appendChild(marker);
@@ -766,17 +783,22 @@ export default function GrapesEditor() {
   };
 
   const applyCustomSize = () => {
+    const unit = customUnit;
     PAGE_SIZES.CUSTOM = {
       portrait: {
-        width: `${customWidth}${customUnit}`,
-        height: `${customHeight}${customUnit}`
+        width: `${customWidth}${unit}`,
+        height: `${customHeight}${unit}`
       },
       landscape: {
-        width: `${customHeight}${customUnit}`,
-        height: `${customWidth}${customUnit}`
+        width: `${customHeight}${unit}`,
+        height: `${customWidth}${unit}`
       },
     };
     setPageSize('CUSTOM');
+    // Force update because setPageSize might not trigger it if it was already CUSTOM but values changed
+    if (editorRef.current && editorRef.current.applyPageSize) {
+      editorRef.current.applyPageSize('CUSTOM', orientation);
+    }
     setShowPDFCustomModal(false);
   };
 
@@ -791,17 +813,14 @@ export default function GrapesEditor() {
           boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', display: 'flex', gap: '16px',
           alignItems: 'center', border: '1px solid #e5e7eb',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <label style={{ fontSize: '14px', fontWeight: '500', color: '#374151', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              <span>PDF Page Height (px):</span>
-              <input
-                type="number"
-                step="0.5"
-                value={pdfPageHeight || ''}
-                onChange={(e) => setPdfPageHeight(Number(e.target.value))}
-                style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #d1d5db', fontSize: '12px', width: '80px' }}
-              />
-            </label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <span style={{ fontSize: '10px', fontWeight: 'bold', color: '#9ca3af', textTransform: 'uppercase' }}>Page Size</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#374151', fontWeight: '500' }}>
+                <span>{PAGE_SIZES[pageSize]?.[orientation]?.width} x {PAGE_SIZES[pageSize]?.[orientation]?.height}</span>
+                <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: '400' }}>({pdfPageHeight?.toFixed(1)}px / page)</span>
+              </div>
+            </div>
           </div>
 
           <div style={{ width: '1px', height: '24px', background: '#e5e7eb' }} />
@@ -1158,7 +1177,7 @@ async function streamGeminiAI(originalHTML, userRequest, imageFile, imageUrl, mo
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      throw new Error(errorData.error || `HTTP error! status: ${response.status} `);
     }
 
     if (!response.body) {
@@ -1197,7 +1216,7 @@ async function streamGeminiAI(originalHTML, userRequest, imageFile, imageUrl, mo
               }
 
               if (chunkCount % 5 === 0) {
-                // console.log(`📦 Processed ${chunkCount} chunks (${fullHTML.length} chars)`);
+                // console.log(`📦 Processed ${ chunkCount } chunks(${ fullHTML.length } chars)`);
               }
 
               // Handle completion when isComplete is true
@@ -1219,7 +1238,7 @@ async function streamGeminiAI(originalHTML, userRequest, imageFile, imageUrl, mo
 
   } catch (error) {
     console.error("❌ Backend AI Stream Error:", error);
-    throw new Error(`AI streaming failed: ${error.message}`);
+    throw new Error(`AI streaming failed: ${error.message} `);
   }
 }
 
@@ -1246,7 +1265,7 @@ async function streamOpenRouterAI(originalHTML, userRequest, imageFile, imageUrl
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      throw new Error(errorData.error || `HTTP error! status: ${response.status} `);
     }
 
     if (!response.body) {
@@ -1301,7 +1320,7 @@ async function streamOpenRouterAI(originalHTML, userRequest, imageFile, imageUrl
 
   } catch (error) {
     console.error("❌ OpenRouter AI Stream Error:", error);
-    throw new Error(`OpenRouter streaming failed: ${error.message}`);
+    throw new Error(`OpenRouter streaming failed: ${error.message} `);
   }
 }
 

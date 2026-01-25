@@ -122,7 +122,7 @@ STRICT RULES:
 - NEVER add vertical scrollbars or internal scrolling containers (overflow-y: scroll/auto).
 - NEVER use 'position: absolute' or 'position: fixed' for layout components. These break standard document flow and do not print correctly across multiple pages. All elements must follow natural document flow for accurate PDF pagination.
 - CRITICAL: No container (div, aside, section, etc.) should EVER have a fixed height (e.g., h-[500px], h-screen, max-h-...) or overflow settings that trigger a scrollbar. Sidebars and headers must be fluid and expand vertically to fit their content.
-- Ensure all content fits within the fixed A4 width (210mm) using text wrapping (word-break: break-all, overflow-wrap: break-word) and flexible (flex-wrap: wrap) layouts.
+- Ensure all content fits within the fixed A4 width (210mm) using text to be of appropriate size and other styling.
 
 Generate the modified HTML now:`;
     } else if (customPrompt) {

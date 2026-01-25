@@ -179,6 +179,9 @@ export default function VisualPaginationEditor() {
                         background: black;
                         padding: 0;
                     }
+                    .page-break-indicator {
+                        display: none !important;
+                    }
                 }
             `;
 

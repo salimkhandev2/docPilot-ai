@@ -153,10 +153,8 @@ export async function POST(request: NextRequest) {
   */
                         background-color: #ffffff !important;
                     }
+                        
 
-                    .page-break-indicator {
-                        display: block !important;
-                    }
                 `;
                 document.head.appendChild(style);
             }, pdfbg);
