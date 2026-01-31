@@ -1,0 +1,190 @@
+# DETAILED SUMMARY of PDF Synchronization Fixes
+
+This document outlines the technical changes implemented to solve the "content drift" issue where visual page breaks in the browser did not align with the generated PDF.
+
+## 1. BACKEND: The "Chopper" Algorithm (`src/app/api/playwright/route.tsx`)
+
+Instead of letting the PDF engine (Playwright/Chromium) flow text naturally (which causes drift due to font rendering differences between OSs), we now mathematically slice the content into discrete pages based on the exact pixel height measured by the user's browser.
+
+### Key Implementation:
+```typescript
+// ------------------------------------------------------------------
+// THE "CHOPPER" ALGORITHM
+// Instead of relying on CSS page-breaks which drift due to font/rendering differences,
+// we mathematically slice the content into discrete pages based on the
+// EXACT pixel height calculated by the client's browser.
+// ------------------------------------------------------------------
+await page.evaluate(({ bg, pageWidth, calibratedHeight }) => {
+    const targetHeight = calibratedHeight || 1123; // Default to ~A4 px if missing
+
+    // Create a standard stylesheet for the pages
+    const style = document.createElement('style');
+    style.id = 'print-slicer-styles';
+    style.textContent = `
+        @page {
+            size: A4; /* Match the physics paper size */
+            margin: 0 !important;
+            background: white;
+        }
+        html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white;
+            width: ${pageWidth} !important;
+            height: 100% !important;
+            -webkit-print-color-adjust: exact;
+        }
+        /* Each page wrapper is exactly one paper size tall */
+        .print-page-wrapper {
+            height: ${targetHeight}px; 
+            width: ${pageWidth};
+            position: relative;
+            overflow: hidden; /* Crop everything outside this page */
+            page-break-after: always;
+            break-after: page;
+            background: ${bg?.backgroundColor || 'white'};
+            /* Ensure no borders/margins on the wrapper affect flow */
+            margin: 0;
+            padding: 0;
+            border: none;
+        }
+        /* The inner content is a clone of the entire document, shifted up */
+        .print-page-content {
+            width: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            /* Transform is better than top for sub-pixel rendering, but margin-top is safer for print flow */
+        }
+    `;
+    document.head.appendChild(style);
+
+    // 1. Get the original content
+    const originalBodyContent = document.body.innerHTML;
+    
+    // Measure total height of the specific content wrapper or just the body
+    // We assume 'body' has the content. 
+    // We need to temporarily wrap it to measure true scroll height if body is flexible
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = originalBodyContent;
+    wrapper.style.cssText = `width: ${pageWidth}; visibility: hidden; position: absolute; top:0; left:0;`;
+    document.body.appendChild(wrapper);
+    const totalHeight = wrapper.scrollHeight;
+    document.body.removeChild(wrapper);
+
+    // 2. Clear the body
+    document.body.innerHTML = '';
+    document.body.style.width = pageWidth;
+
+    // 3. Calculate number of pages needed
+    const totalPages = Math.ceil(totalHeight / targetHeight);
+    console.log(`Cutting document of ${totalHeight}px into ${totalPages} pages of ${targetHeight}px`);
+
+    // 4. Generate the pages
+    for (let i = 0; i < totalPages; i++) {
+        const pageContainer = document.createElement('div');
+        pageContainer.className = 'print-page-wrapper';
+        
+        const contentClone = document.createElement('div');
+        contentClone.className = 'print-page-content';
+        contentClone.innerHTML = originalBodyContent;
+        
+        // Shift content up to reveal the slice for this page
+        // Page 0: top 0
+        // Page 1: top -1123px
+        // Page 2: top -2246px
+        const offset = -(i * targetHeight);
+        contentClone.style.marginTop = `${offset}px`;
+
+        pageContainer.appendChild(contentClone);
+        document.body.appendChild(pageContainer);
+    }
+
+    // 5. Cleanup scripts effectively to stop them from running again and messing up the clones
+    // (Optional, but good practice if scripts interact with DOM)
+    const scripts = document.querySelectorAll('script');
+    scripts.forEach(s => s.remove());
+
+}, { bg: pdfbg, pageWidth: pageConfig.width, calibratedHeight: pageConfig.calibratedHeight });
+```
+
+---
+
+## 2. FRONTEND: Height Calibration (`src/components/Editor/BasicsGrapejs-gemini-streaming.jsx`)
+
+We added logic to measure exactly how many pixels a "297mm" page takes up on the user's specific screen/zoom level. This eliminates guessing (e.g. assuming 1123px).
+
+### 2a. Calibration Function
+```javascript
+  // Calibrate page height function, moved to main scope
+  const calibratePageHeight = useCallback(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    const frameDoc = editor.Canvas.getDocument();
+    if (!frameDoc) return;
+
+    const currentSize = PAGE_SIZES[pageSizeRef.current]?.[orientationRef.current];
+    if (!currentSize) return;
+
+    const testEl = frameDoc.createElement('div');
+    testEl.style.cssText = `
+        position: absolute;
+        visibility: hidden;
+        height: ${currentSize.height};
+        width: 100px;
+        top: -9999px;
+      `;
+    frameDoc.body.appendChild(testEl);
+    const measuredHeight = testEl.getBoundingClientRect().height;
+    frameDoc.body.removeChild(testEl);
+
+    if (measuredHeight > 0 && Math.abs(measuredHeight - pdfPageHeightRef.current) > 0.1) {
+      console.log(`📏 Calibrated ${pageSizeRef.current} height: ${measuredHeight}px`);
+      setPdfPageHeight(measuredHeight);
+    }
+  }, [setPdfPageHeight]); 
+```
+
+### 2b. Updated Export Payload
+We now send this `calibratedHeight` to the backend:
+```javascript
+      const exportData = {
+        html,
+        css,
+        pageConfig: {
+          width: size.width,
+          height: size.height, // This is the string "297mm"
+          calibratedHeight: pdfPageHeightRef.current, // This is the specific pixel height
+        },
+        // ...
+      };
+```
+
+---
+
+## 3. PROMPT OPTIMIZATION
+
+We updated the default prompt to ensure the AI generates code that is structurally conducive to this slicing method (avoiding complex floats that might break awkwardly).
+
+```javascript
+userRequest: "Create a professional, PDF-optimized Cyber Security resume for Salim Khan. Use a clean, single-column or simple two-column layout that renders perfectly in PDF. Highlight expertise in network security, ethical hacking, threat intelligence, incident response, vulnerability assessment, cloud security (AWS/Azure), and certifications like CISSP/CEH. Ensure the HTML structure is semantic and avoids complex positioning or floats that might break across pages.",
+```
+
+## 4. STRICT STYLES
+
+We enforced strict resets to ensure the "browser engine" in Playwright behaves like a print engine.
+
+```javascript
+const DOCUMENT_STRICT_STYLES = `
+  /* Force everything to stay within boundaries */
+  html, body {
+      margin: 0 !important;
+      padding: 0 !important;
+      -webkit-print-color-adjust: exact;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+  }
+  // ...
+```

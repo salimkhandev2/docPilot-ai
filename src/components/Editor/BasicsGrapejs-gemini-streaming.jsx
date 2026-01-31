@@ -55,12 +55,13 @@ const DOCUMENT_STRICT_STYLES = `
       box-sizing: border-box !important;
       max-width: 100% !important;
       word-break: normal;
-      overflow-wrap: break-word;
-      word-wrap: break-word;
-      hyphens: auto;
+      overflow-wrap: normal;
+      word-wrap: normal;
+      hyphens: none !important;
       white-space: normal !important;
       scrollbar-width: none !important; /* Firefox */
       min-width: 0 !important;
+      line-height: normal !important;
   }
 
   /* Hide scrollbars for Chrome, Safari and Opera */
@@ -75,7 +76,7 @@ const DOCUMENT_STRICT_STYLES = `
   }
 
   td, th {
-      word-break: break-all !important;
+      word-break: normal !important;
       white-space: normal !important;
   }
 
@@ -86,7 +87,10 @@ const DOCUMENT_STRICT_STYLES = `
 
 
 export default function GrapesEditor() {
-  const editorRef = useRef(null);
+  const containerRef = useRef(null);
+  const [editor, setEditor] = useState(null);
+  const editorRef = useRef(null); // Keep a ref for synchronous access if needed, but use state for effects
+
   const blobURLsRef = useRef(new Set());
 
   // PDF Generator State
@@ -99,6 +103,17 @@ export default function GrapesEditor() {
   const [pdfPageHeight, setPdfPageHeight] = useState(1122.5); // Dynamically calculated from physical units
   const [customUnit, setCustomUnit] = useState('mm');
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+
+  // Helper Functions
+  const convertToPixels = (cssValue, frameDoc) => {
+    if (!frameDoc) return 0;
+    const testEl = frameDoc.createElement('div');
+    testEl.style.cssText = `position: absolute; visibility: hidden; height: ${cssValue}; `;
+    frameDoc.body.appendChild(testEl);
+    const pixels = testEl.offsetHeight;
+    frameDoc.body.removeChild(testEl);
+    return pixels;
+  };
 
   // AI Modal State
   const [showModal, setShowModal] = useState(false);
@@ -117,7 +132,7 @@ export default function GrapesEditor() {
   }, [pageSize, orientation]);
 
   useEffect(() => {
-    if (!editorRef.current) return;
+    if (!containerRef.current) return;
 
     const editor = grapesjs.init({
       container: '#gjs-editor',
@@ -248,14 +263,6 @@ export default function GrapesEditor() {
     });
 
     // Helper Functions
-    function convertToPixels(cssValue, frameDoc) {
-      const testEl = frameDoc.createElement('div');
-      testEl.style.cssText = `position: absolute; visibility: hidden; height: ${cssValue}; `;
-      frameDoc.body.appendChild(testEl);
-      const pixels = testEl.offsetHeight;
-      frameDoc.body.removeChild(testEl);
-      return pixels;
-    }
 
     function applyPageSize(sizeKey, orient) {
       const size = PAGE_SIZES[sizeKey]?.[orient];
@@ -341,7 +348,8 @@ body {
     editor.updatePageCount = updatePageCount;
 
     // ... (Tailwind config continues below) change from editorRef.current.getEditor to editor.getEditor specific assignment
-    editorRef.current = editor; // Ensure ref points to editor instance if needed, or stick to editorRef usage pattern
+    editorRef.current = editor;
+    setEditor(editor);
 
     // Original code used editorRef.current as container, then assigned editor instance to it? 
     // Wait, the original code: editorRef.current = editor; 
@@ -432,7 +440,7 @@ if (typeof tailwind !== 'undefined') {
           const callbacks = modalCallbacksRef.current;
 
           callbacks.setModalData({
-            userRequest: "Make a professional Cyber Security resume for Salim Khan, highlighting expertise in network security, ethical hacking, threat intelligence, incident response, vulnerability assessment, cloud security (AWS/Azure), penetration testing tools, and industry certifications like CISSP or CEH. Focus on technical skills, project impact, and security-first mindset.",
+            userRequest: "Make a fancy and genxy Cyber Security resume for Salim Khan, highlighting expertise in network security, ethical hacking, threat intelligence, incident response, vulnerability assessment, cloud security (AWS/Azure), penetration testing tools, and industry certifications like CISSP or CEH. Focus on technical skills, project impact, and security-first mindset.",
             imageFile: null,
             imageUrl: '',
             imagePreview: null,
@@ -602,27 +610,26 @@ if (typeof tailwind !== 'undefined') {
 
   // Effect to update editor when size/orientation changes
   useEffect(() => {
-    if (editorRef.current && editorRef.current.applyPageSize) {
-      editorRef.current.applyPageSize(pageSize, orientation);
+    if (editor && editor.applyPageSize) {
+      editor.applyPageSize(pageSize, orientation);
     }
-  }, [pageSize, orientation]);
+  }, [editor, pageSize, orientation]);
 
   // We need to keep a ref to the current pdfPageHeight so the static closure functions can see it
   const pdfPageHeightRef = useRef(1123);
   useEffect(() => {
     pdfPageHeightRef.current = pdfPageHeight;
-    if (editorRef.current?.updateMarkers) {
-      editorRef.current.updateMarkers();
+    if (editor?.updateMarkers) {
+      editor.updateMarkers();
     }
-  }, [pdfPageHeight]);
+  }, [editor, pdfPageHeight]);
 
   // Re-attach the marker logic properly to access the Ref
   useEffect(() => {
-    if (!editorRef.current) return;
-
-    const editor = editorRef.current;
+    if (!editor) return;
 
     function updatePageBreakMarkers() {
+      if (!editor || !editor.Canvas) return;
       const frameDoc = editor.Canvas.getDocument();
       if (!frameDoc) return;
 
@@ -667,16 +674,16 @@ z-index: 9999;
           label.textContent = `PAGE ${i + 1} START`;
           label.style.cssText = `
 position: absolute;
-left: 50 %;
-transform: translateX(-50 %);
-top: -10px;
+right: 5px;
+top: 2px;
 background: #ff4444;
 color: white;
-padding: 2px 8px;
-font-size: 10px;
+padding: 1px 6px;
+font-size: 9px;
 font-weight: bold;
-border-radius: 4px;
+border-radius: 3px;
 white-space: nowrap;
+opacity: 0.8;
 `;
 
           marker.appendChild(label);
@@ -699,13 +706,12 @@ white-space: nowrap;
     // Initial run
     updatePageBreakMarkers();
 
-  }, []); // Run once to bind, but rely on ref for values
+  }, [editor]); // Run when editor is ready
 
   // Export and UI Handlers
   const handleExportPDF = async () => {
     // Note: We use the 'editor' instance directly if possible, or via ref
     // The ref 'editorRef.current' now holds the editor instance as per initialization
-    const editor = editorRef.current;
     if (!editor || !editor.getHtml) return;
 
     try {
@@ -714,25 +720,85 @@ white-space: nowrap;
       const wrapper = editor.getWrapper();
       const wrapperEl = wrapper?.view?.el;
 
-      // Get actual rendered HTML including dynamically added markers from the wrapper element
-      let html = wrapperEl ? wrapperEl.innerHTML : editor.getHtml();
-      html = await convertBlobURLsToBase64(html);
+      // 1. Calculate the required number of pages based on the total scroll height
+      const pageHeight = pdfPageHeightRef.current || 1123;
+      const scrollHeight = wrapperEl ? wrapperEl.scrollHeight : 0;
+      const numPages = Math.max(1, Math.ceil(scrollHeight / pageHeight));
+
+      // 2. Get and clean the content HTML
+      let contentHtml = wrapperEl ? wrapperEl.innerHTML : editor.getHtml();
+      contentHtml = await convertBlobURLsToBase64(contentHtml);
+
+      // 3. Transform single continuous HTML into multiple "harshly" cut viewports
+      let segmentedHtml = '';
+
+      for (let i = 0; i < numPages; i++) {
+        segmentedHtml += `
+          <div class="pdf-viewport" style="
+            height: ${pageHeight}px; 
+            overflow: hidden; 
+            position: relative; 
+            page-break-after: always;
+            width: 100%;
+            background: white;
+            contain: paint;
+          ">
+            <div class="pdf-shifter" style="
+              position: relative; 
+              transform: translateY(-${i * pageHeight}px); 
+              width: 100%;
+              transform-origin: top left;
+              will-change: transform;
+            ">
+              ${contentHtml}
+            </div>
+          </div>
+        `;
+      }
+
       let css = editor.getCss();
 
       // Ensure the strict document behavior is included in the PDF CSS
-      css = DOCUMENT_STRICT_STYLES + "\n" + css;
+      css = DOCUMENT_STRICT_STYLES + `
+        /* Force symbols and characters to render even if clipped */
+        * {
+          -webkit-print-color-adjust: exact;
+          color-adjust: exact;
+          line-height: normal !important;
+          break-inside: auto !important;
+          page-break-inside: auto !important;
+          orphans: 1 !important;
+          widows: 1 !important;
+        }
 
-      // Convert camelCase CSS properties to kebab-case (CRITICAL for Playwright)
-      css = css.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
+        .pdf-viewport {
+          width: 100% !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          background: white !important;
+        }
+
+        .pdf-shifter {
+          width: 100% !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          display: block !important;
+        }
+      ` + "\n" + css;
 
       const size = PAGE_SIZES[pageSize]?.[orientation];
+      const frameDoc = editor.Canvas.getDocument();
+      const pixelWidth = convertToPixels(size.width, frameDoc);
+      const pixelHeight = pageHeight;
 
       const exportData = {
-        html,
+        html: segmentedHtml,
         css,
         pageConfig: {
           width: size.width,
           height: size.height,
+          pixelWidth,
+          pixelHeight,
         },
         scripts: [
           'https://cdn.tailwindcss.com',
@@ -796,8 +862,8 @@ white-space: nowrap;
     };
     setPageSize('CUSTOM');
     // Force update because setPageSize might not trigger it if it was already CUSTOM but values changed
-    if (editorRef.current && editorRef.current.applyPageSize) {
-      editorRef.current.applyPageSize('CUSTOM', orientation);
+    if (editor && editor.applyPageSize) {
+      editor.applyPageSize('CUSTOM', orientation);
     }
     setShowPDFCustomModal(false);
   };
@@ -906,7 +972,7 @@ white-space: nowrap;
           </div>
         )}
 
-        <div id="gjs-editor" ref={editorRef} className="w-full h-full" />
+        <div id="gjs-editor" ref={containerRef} className="w-full h-full" />
       </div>
 
       {/* AI Regenerate Modal */}

@@ -21,9 +21,10 @@ export async function POST(request: NextRequest) {
             // Create isolated context for this request
             const context = await browser.newContext({
                 viewport: {
-                    width: 1920,
-                    height: 1080,
+                    width: Math.ceil(pageConfig.pixelWidth || 1122),
+                    height: Math.ceil(pageConfig.pixelHeight || 1587),
                 },
+                deviceScaleFactor: 1,
             });
 
             const page = await context.newPage();
@@ -34,16 +35,23 @@ export async function POST(request: NextRequest) {
             // Construct full HTML document with dynamic assets
             const fullHTML = `
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" style="margin: 0; padding: 0;">
 <head>
     <meta charset="UTF-8">
     ${styles.map((href: string) => `<link rel="stylesheet" href="${href}">`).join('\n')}
     ${scripts.map((src: string) => `<script src="${src}"></script>`).join('\n')}
     <style>
         ${css}
+        html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: ${pageConfig.pixelWidth}px !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
     </style>
 </head>
-<body>
+<body style="margin: 0; padding: 0;">
     ${html}
 </body>
 </html>
@@ -121,7 +129,7 @@ export async function POST(request: NextRequest) {
             console.log('PDF Background Color:', pdfbg?.backgroundColor || 'Not found');
 
             // Inject CSS to set page size and overrides
-            await page.evaluate((bg: any) => {
+            await page.evaluate(({ bg, width, height, pixelWidth, pixelHeight }) => {
                 const style = document.createElement('style');
                 style.id = 'playwright-pdf-override';
                 style.textContent = `
@@ -129,38 +137,35 @@ export async function POST(request: NextRequest) {
                     html, body {
                         margin: 0 !important;
                         padding: 0 !important;
-                        width: 210mm !important;
-                        height: 100% !important;
-                        -webkit-print-color-adjust: exact;
-                    }
-
-                    * {
-                        widows: 1 !important;
-                        orphans: 1 !important;
-                        break-inside: auto !important;
-                        page-break-inside: auto !important;
-                        break-before: auto !important;
-                        break-after: auto !important;
+                        width: ${pixelWidth}px !important;
+                        overflow: visible !important;
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
                     }
 
                     @page {
-                        size: A4;
+                        size: ${pixelWidth}px ${pixelHeight}px;
                         margin: 0 !important;
-  /*
-  ${bg?.backgroundColor
-                        ? `background-color: ${bg.backgroundColor} !important;`
-                        : ''}
-  */
-                        background-color: #ffffff !important;
                     }
-                        
+                    
+                    /* Ensure backgrounds are printed for all elements */
+                    * {
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                    }
 
+                    /* If there's a specific background color for the page */
+                    ${bg?.backgroundColor ? `body { background-color: ${bg.backgroundColor} !important; }` : ''}
                 `;
                 document.head.appendChild(style);
-            }, pdfbg);
+            }, { bg: pdfbg, width: pageConfig.width, height: pageConfig.height, pixelWidth: pageConfig.pixelWidth, pixelHeight: pageConfig.pixelHeight });
 
-            // Wait for layout stabilization
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            // but usually we just wait for its styles to be injected.
+            // We can check if any styles were added to the head by tailwind.
+
+            // Wait for layout stabilization and potential Tailwind processing
+            await new Promise(resolve => setTimeout(resolve, 3000));
+
 
             const pdfBuffer = await page.pdf({
                 preferCSSPageSize: true,

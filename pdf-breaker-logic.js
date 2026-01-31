@@ -1,8 +1,11 @@
-const express = require('express');
-const puppeteer = require('puppeteer');
-const path = require('path');
-const cors = require('cors');
+import express from 'express';
+import { chromium } from 'playwright';
+import path from 'path';
+import cors from 'cors';
+import { fileURLToPath } from 'url';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = 3000;
 
@@ -10,111 +13,136 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'pdf-breaker-logic.html'));
+});
+
 app.get('/generate-pdf', async (req, res) => {
-    console.log('Generating PDF...');
+    console.log('Starting PDF generation...');
+    let browser;
+
     try {
-        const browser = await puppeteer.launch();
-        const page = await browser.newPage();
-
-        // Increased timeout for large documents
-        page.setDefaultTimeout(120000);
-        page.setDefaultNavigationTimeout(120000);
-
-        await page.setViewport({
-            width: 1920,
-            height: 1080,
-            deviceScaleFactor: 2  // Standard 1:1 pixel ratio (96 DPI)
+        browser = await chromium.launch({
+            headless: true,
+            args: ['--no-sandbox', '--disable-setuid-sandbox']
         });
 
-        await page.goto(`http://localhost:${PORT}/index.html`, {
-            waitUntil: 'networkidle0',
+        const context = await browser.newContext({
+            viewport: { width: 794, height: 1123 }, // A4 at 96 DPI
+            deviceScaleFactor: 1
+        });
+
+        const page = await context.newPage();
+        page.setDefaultTimeout(120000);
+
+        await page.goto(`http://127.0.0.1:${PORT}/`, {
+            waitUntil: 'networkidle',
             timeout: 120000
         });
 
-        // Wait for fonts to fully load before measuring
         await page.evaluate(() => document.fonts.ready);
 
-        // CRITICAL FIX #3: Normalize the layout to match indicator calculations
         await page.evaluate(() => {
-            // Hide download button
-            const button = document.getElementById('download-pdf');
-            if (button) button.style.display = 'none';
-            // also remve the other as well
-            const calibrationInfo = document.getElementById('calibration-info');
-            if (calibrationInfo) calibrationInfo.style.display = 'none';
+            // Hide UI elements
+            ['download-pdf', 'calibration-info'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = 'none';
+            });
             const controls = document.querySelector('.controls');
             if (controls) controls.style.display = 'none';
 
-            // Remove body padding for PDF generation
-            document.body.style.padding = '0';
-            document.body.style.margin = '0';
-
-            // Remove or override conflicting @page CSS rules
-            const existingStyles = document.querySelectorAll('style');
-            existingStyles.forEach(style => {
+            // Clean up existing page styles to prevent conflicts
+            document.querySelectorAll('style').forEach(style => {
                 if (style.textContent.includes('@page')) {
-                    // Remove conflicting @page rules from existing styles
-                    style.textContent = style.textContent.replace(
-                        /@page\s*\{[^}]*\}/g,
-                        ''
-                    );
+                    style.textContent = style.textContent.replace(/@page\s*\{[^}]*\}/gs, '');
                 }
             });
 
-            // Inject CSS to set page size: full A4 width (210mm) × half A4 height (148.5mm)
-            // This must come after existing styles to override them
+            // Inject strict PDF layout styles
             const style = document.createElement('style');
-            style.id = 'puppeteer-pdf-override';
             style.textContent = `
-                @page {
-                    size: 210mm 297.5mm !important; /* Full A4 width (210mm) × Half A4 height (148.5mm) */
-                   
+                /* 1. Global Reset - Match main builder approach */
+                * {
+                    box-sizing: border-box !important;
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                    background-color: red !important;
                 }
-                /* Ensure content width matches full A4 width */
-                /* CRITICAL: Keep padding consistent with browser rendering */
+
+                html, body {
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    width: 210mm !important;
+                    overflow: visible !important;
+                }
+
+                /* 2. Page Configuration */
+                @page {
+                    size: A4;
+                    margin: 0 !important;
+                }
+
+                /* 3. Content Container Restraints */
                 .content {
                     width: 210mm !important;
                     max-width: 210mm !important;
                     min-width: 210mm !important;
-                    padding: 0px !important;
-                    /* CRITICAL: Clone padding on each page to prevent it from being "eaten" */
+                    margin: 0 auto !important;
+                    padding: 0 !important;
+                    box-shadow: none !important;
+                    background: white !important;
+                    position: relative !important;
+                    display: flow-root !important;
+                }
 
+                /* 4. Cross-browser printing consistency */
+                body {
+                     -webkit-font-smoothing: antialiased;
+                    -moz-osx-font-smoothing: grayscale;
+                }
+                 
+                /* 5. Hide visual debug indicators */
+                .page-break-line {
+                    display: none !important;
                 }
             `;
             document.head.appendChild(style);
         });
 
-        // Wait for fonts again after DOM modifications
         await page.evaluate(() => document.fonts.ready);
-
-        // Wait for layout stabilization after CSS injection
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
+        await page.waitForTimeout(2000);
 
         const pdfBuffer = await page.pdf({
-            width: '210mm',   // Full A4 width (unchanged)
-            height: '297.5mm', // Half of A4 height only (297mm / 2 = 148.5mm)
+            preferCSSPageSize: true,
             printBackground: true,
-            margin: { top: '0px', bottom: '40px', left: '0px', right: '0px' },
-            preferCSSPageSize: true, // Use CSS @page size definition
-            scale: 1,
+            scale: 1
         });
-
-
-        await browser.close();
 
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', 'attachment; filename=output.pdf');
         res.send(pdfBuffer);
         console.log('PDF generated successfully!');
+
     } catch (err) {
-        console.error(err);
-        res.status(500).send('Error generating PDF');
+        console.error('PDF Generation Error:', err);
+        res.status(500).send('Error generating PDF: ' + err.message);
+    } finally {
+        if (browser) {
+            await browser.close();
+        }
     }
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server is LIVE!`);
-    console.log(`- Local:  http://localhost:${PORT}`);
-    console.log(`- Mobile: http://192.168.18.62:${PORT}`);
+const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running at http://localhost:${PORT}`);
+});
+
+server.on('error', (e) => {
+    if (e.code === 'EADDRINUSE') {
+        console.error('Port in use, retrying...');
+        setTimeout(() => {
+            server.close();
+            server.listen(PORT, '0.0.0.0');
+        }, 1000);
+    }
 });

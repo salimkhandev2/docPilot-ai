@@ -66,7 +66,6 @@ USER REQUEST:
 ${userRequest}
 
 STRICT RULES:
-STRICT RULES:
 - Your response must contain ONLY HTML code. Nothing else.
 - DO NOT write any text before the HTML (no "Here is...", no "I've...", no explanations).
 - DO NOT write any text after the HTML (no "Key improvements:", no summaries, no notes).
@@ -79,12 +78,13 @@ STRICT RULES:
 - DO NOT use \`\`\`html or markdown code blocks.
 - DO NOT include <!DOCTYPE>, <html>, <head>, or <body> tags.
 - Preserve all id and class attributes unless instructed otherwise.
-- DO NOT add any animations, transitions, or hover effects (no scale, transform, transition, hover: classes, etc.).
+- DO NOT add any animations, transitions, or hover effects. This HTML is for a static PDF document, so dynamic effects like scale, transform, transition, or hover: classes are strictly forbidden and will not work.
 - NEVER add horizontal scrollbars (overflow-x: scroll/auto).
 - NEVER add vertical scrollbars or internal scrolling containers (overflow-y: scroll/auto).
 - NEVER use 'position: absolute' or 'position: fixed' for layout components. These break standard document flow and do not print correctly across multiple pages. All elements must follow natural document flow for accurate PDF pagination.
 - CRITICAL: No container (div, aside, section, etc.) should EVER have a fixed height (e.g., h-[500px], h-screen, max-h-...) or overflow settings that trigger a scrollbar. Sidebars and headers must be fluid and expand vertically to fit their content.
 - Ensure all content fits within the fixed A4 width (210mm) using text to be of appropriate size and other styling.
+- The design must be completely static and optimized for high-quality PDF print output.
 
 Generate the modified HTML now:`;
         } else if (customPrompt) {

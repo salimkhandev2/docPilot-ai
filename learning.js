@@ -1,5 +1,8 @@
-const nums = [5, 12, 8, 130, 44];
+async function getPosts() {
+    let message= await Promise.resolve("Hello")
+    console.log(message)
+    return message
+}
 
-const filtered = nums.findIndex(n => n > 32);
+getPosts()
 
-console.log(filtered);

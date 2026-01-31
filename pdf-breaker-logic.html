@@ -8,82 +8,48 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        /* Cross-Browser CSS Reset and Normalization */
-
-        /* Universal box-sizing with inheritance pattern */
-        *,
-        *::before,
-        *::after {
+        * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
         }
 
-        /* Root font size for consistent rem calculations */
         html {
             font-size: 16px;
-            -webkit-text-size-adjust: 100%;
-            -ms-text-size-adjust: 100%;
             text-size-adjust: 100%;
         }
 
-        /* Body with comprehensive font smoothing */
         body {
             font-family: 'Roboto', Arial, sans-serif;
-        background: black;
-            padding: 0px;
-            position: relative;
-
-
-            /* Cross-browser font smoothing */
+            background: black;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
             text-rendering: optimizeLegibility;
-
-            /* Font feature settings for consistency */
             font-feature-settings: "kern" 1;
             font-kerning: normal;
-
-            /* Prevent font scaling in landscape */
-            -webkit-text-size-adjust: 100%;
-            -ms-text-size-adjust: 100%;
         }
 
-        /* Content container with fixed dimensions */
         .content {
             width: 210mm;
             max-width: 210mm;
             min-width: 210mm;
             margin: 0 auto;
             background: white;
-            padding: 0px;
+            padding: 0;
             position: relative;
             display: flow-root;
             overflow-anchor: none;
         }
 
-        /* Page break indicator with vendor prefixes */
         .page-break-line {
             position: absolute;
             left: 0;
             right: 0;
             width: 100%;
             height: 3px;
-            background: repeating-linear-gradient(90deg,
-                    #ff0000 0px,
-                    #ff0000 20px,
-                    transparent 20px,
-                    transparent 40px);
-            background: -webkit-repeating-linear-gradient(90deg,
-                    #ff0000 0px,
-                    #ff0000 20px,
-                    transparent 20px,
-                    transparent 40px);
-            background: -moz-repeating-linear-gradient(90deg,
-                    #ff0000 0px,
-                    #ff0000 20px,
-                    transparent 20px,
-                    transparent 40px);
+            background: repeating-linear-gradient(90deg, #ff0000 0px, #ff0000 20px, transparent 20px, transparent 40px);
             z-index: 9999;
             pointer-events: none;
         }
@@ -103,52 +69,24 @@
             white-space: nowrap;
         }
 
-
-
-
-        /* Paragraph normalization */
-
-
-        /* Button reset for cross-browser consistency */
-        button {
-            font-family: inherit;
-            font-size: 100%;
-            line-height: 1.15;
-            margin: 0;
-            padding: 0;
-            border: none;
-            background: none;
-            cursor: pointer;
-
-            /* Remove default appearance */
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
-
-            /* Remove tap highlight on mobile */
-            -webkit-tap-highlight-color: transparent;
-
-            /* Prevent text selection */
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
-        }
-
-        /* Input normalization */
+        button,
         input {
             font-family: inherit;
             font-size: 100%;
             line-height: 1.15;
             margin: 0;
-
-            /* Remove default appearance */
-            -webkit-appearance: none;
-            -moz-appearance: none;
+            border: none;
             appearance: none;
         }
 
-        /* Controls panel */
+        button {
+            padding: 0;
+            background: none;
+            cursor: pointer;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
         .controls {
             position: fixed;
             top: 20px;
@@ -161,8 +99,6 @@
             max-width: 280px;
         }
 
-
-        /* Calibration info panel */
         .calibration-info {
             position: fixed;
             bottom: 20px;
@@ -178,38 +114,30 @@
             line-height: 1.5;
         }
 
-
-
-        /* Print styles */
         @media print {
             body {
-                background: black;
-                padding: 0;
+
+                padding: 0 !important;
+                margin: 0 !important;
+
             }
-
-
 
             .content {
-                width: 8.27in;
-                max-width: 8.27in;
-                min-width: 8.27in;
-                margin: 0 auto;
-                background: white;
-                /* padding: 0px; */
-                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-                position: relative;
-                display: flow-root;
-
-                /* Prevent content shifting */
-                overflow-anchor: none;
+                width: 210mm !important;
+                max-width: 210mm !important;
+                min-width: 210mm !important;
+                margin: 0 auto !important;
+                background: white !important;
+                box-shadow: none !important;
+                position: relative !important;
+                display: flow-root !important;
+                overflow-anchor: none !important;
             }
-
         }
 
-        /* Print page configuration */
         @page {
             size: A4;
-
+            margin: 0 !important;
         }
     </style>
 </head>
@@ -253,11 +181,10 @@
     </div>
 
     <div class="content" id="content">
-  
+   Lorem ipsum dolor sit, amet consectetur adipisicing elit. Sint, accusamus hic! Autem modi sapiente commodi eius quidem adipisci hic odit mollitia quo! Nisi asperiores qui consectetur sequi enim aut officiis fugit recusandae ad nam autem, libero tempore mollitia voluptas, quod laboriosam quia ipsum maxime, dolor tempora numquam atque? Quam exercitationem non, veritatis dolorem inventore ab in veniam voluptatem vitae esse a perspiciatis reiciendis repellendus excepturi at pariatur, reprehenderit qui nesciunt quo id nihil atque. Molestias repudiandae, sit qui fugit voluptatum quasi asperiores commodi esse. Deleniti non distinctio accusamus necessitatibus commodi voluptatibus itaque dignissimos modi reiciendis vel inventore enim eos odio soluta beatae, possimus ea consectetur laborum corrupti rerum omnis dicta? Fugit, saepe perferendis enim omnis eaque, expedita odit assumenda magnam blanditiis corporis repellendus aperiam quas molestiae dicta voluptatem voluptatibus quod accusamus quibusdam autem, perspiciatis quam quidem minus! Tempore officiis earum eius magni numquam quam odit assumenda ipsa sed asperiores qui, autem modi saepe at. Voluptate repellendus distinctio, sapiente adipisci est modi facere exercitationem nobis quaerat dignissimos ex velit iure deserunt nostrum, dolorem quae quibusdam doloribus necessitatibus maiores esse magnam cum. Rem expedita maxime delectus eos. Voluptas voluptatem placeat ipsum maxime? Iusto voluptatem quos accusamus dolorum ratione quidem harum tempora, sint ducimus commodi? Assumenda excepturi alias modi sequi iure minima facere illo veniam mollitia ullam, itaque ab cum maxime quam incidunt porro, quas repellat nisi reprehenderit ratione debitis eum quisquam? Reiciendis perferendis doloribus, temporibus iusto vel delectus, rerum dolorem, impedit autem distinctio totam soluta sit dolores eveniet voluptatum quas repellendus ullam architecto a quidem accusamus qui labore. Molestiae asperiores harum in pariatur expedita illum perferendis quisquam unde necessitatibus, blanditiis quas vero quod. Ea, eos ducimus. Vero iusto, veniam molestias officiis nisi natus nihil. Accusantium quod veniam, laborum tempora rerum consequuntur dolorum dolor iusto fuga saepe beatae doloribus magni earum libero est quisquam dolore deserunt similique, explicabo dolores eveniet! Iusto deleniti animi rerum cumque ut quaerat magnam odit dolorum nihil doloribus adipisci voluptatem tenetur maiores dolores ipsa consequuntur voluptatibus incidunt, cupiditate nobis impedit atque facere corrupti id eligendi. Veritatis non quam reprehenderit maxime illo eius, voluptates autem cum molestias perferendis, minima et tempore dolorum, nam nostrum porro similique natus possimus aperiam dolores minus dolor. Architecto reiciendis id, minus ab repellendus accusantium vel possimus ratione at fugit nemo! Eaque veritatis consectetur ducimus recusandae, ex magni quam cupiditate molestias cumque quae excepturi debitis temporibus, pariatur consequuntur quod aperiam iure deserunt voluptates? Harum, rerum sed sunt cum tempore saepe esse sapiente dolorum! Magni eos impedit provident dolorem mollitia distinctio, rerum iure quia at quod consequuntur alias. Illo sapiente at quis dolores! Libero praesentium eos est minima! Quasi at quod ipsum ipsam corporis nihil quibusdam perferendis exercitationem aut atque architecto facere fugiat, temporibus neque harum reprehenderit voluptatibus incidunt. Ipsum voluptatum vel sint a minima deserunt quam atque, perferendis reprehenderit est placeat obcaecati modi molestias incidunt velit corporis dignissimos illum, voluptas fuga quisquam. In perferendis provident voluptate non fuga enim sed? Libero illum corporis sequi officiis tempore, rem placeat similique temporibus totam aspernatur alias ratione consectetur neque cupiditate fugiat quisquam repudiandae tempora. Beatae accusamus, quaerat labore rerum doloremque quo assumenda dolorem vero quos voluptates odit. Itaque velit voluptatibus suscipit obcaecati, harum, ipsa, quis laborum vitae assumenda perspiciatis illum soluta. Itaque delectus saepe autem dolor culpa eveniet impedit nisi, sint iste cupiditate, pariatur voluptas expedita molestiae laudantium blanditiis porro harum sunt et quo? Similique, aliquam nemo! Itaque sapiente sint quia molestiae explicabo possimus, quasi ea! Commodi praesentium quo fugit eveniet? Suscipit, quis quia. Temporibus, obcaecati tempora dolor molestiae praesentium libero explicabo voluptatum ea hic perspiciatis totam in omnis impedit, tempore culpa deleniti natus maiores quo, eligendi deserunt! Nemo ipsa quisquam nulla tempore animi rem eos, voluptates dolores? Ducimus amet voluptas dicta! Ipsa nulla illo rerum voluptatem minus odit quae aut atque, nam animi quas veniam nemo ipsum at esse maxime obcaecati dicta repudiandae! Excepturi repellat culpa omnis earum quia reiciendis minus ab perferendis. Itaque est reiciendis numquam! Enim ducimus quibusdam quo eum possimus? Est ex vel, sunt natus minus enim odio blanditiis magnam, consequuntur amet suscipit minima ducimus hic alias. Beatae, unde quisquam possimus debitis enim minima. Distinctio, ipsum odit eligendi necessitatibus possimus enim debitis adipisci tempore labore molestias reprehenderit, animi ipsa repellendus et officia quam voluptate, quod recusandae dolor. Illo modi repellat deserunt sapiente, a quia ratione quas! Repellat tenetur voluptates iste sed corporis suscipit nihil inventore cupiditate, reprehenderit quia cumque expedita quod iusto, officiis, voluptas itaque beatae facilis dolorem amet pariatur corrupti maxime. Provident, corporis ex dicta obcaecati assumenda laboriosam voluptatibus quibusdam saepe reiciendis quisquam dolores nam a, laudantium architecto iusto deleniti iure tempora officiis ad nemo ipsam vero. Quae placeat illo, laborum aperiam nemo dolore esse quas aut vero, quaerat totam veritatis. Fuga velit sunt, laboriosam quaerat nobis beatae. Aspernatur, voluptates. Obcaecati, vel eligendi alias, esse voluptate quaerat temporibus eum ex, unde dolore cum sapiente excepturi deleniti perspiciatis delectus voluptatibus quis beatae iste velit reiciendis quasi consectetur veritatis at laudantium! Necessitatibus vel facere non natus, modi voluptas dicta, doloremque nisi beatae qui amet. Odit explicabo facilis debitis atque dolore fugiat labore optio amet porro quo nobis sunt, soluta dolor enim cum alias perspiciatis, modi voluptates. Nisi nam quasi asperiores? Corrupti labore mollitia libero quasi a ipsa praesentium accusamus? Nobis magnam omnis repellat nesciunt incidunt pariatur nam praesentium, accusantium asperiores. Assumenda consectetur distinctio est repellendus dolorum voluptatem harum! Ipsam officiis eos laboriosam assumenda reiciendis! Odio facere aspernatur aliquam quas velit blanditiis rem, odit doloribus in! Quos, alias. Iure iusto similique exercitationem nam nisi pariatur minus, aut sunt eveniet cum ab optio voluptatem ullam sapiente adipisci inventore architecto deleniti amet quod cumque nesciunt asperiores quaerat. Et enim amet asperiores tempore ut, excepturi atque voluptatem eveniet officia? Doloremque voluptatibus odit soluta atque ab dolorum quis nihil porro a dolores laborum ut labore vel distinctio quibusdam error architecto ex, ipsum, exercitationem fuga? Consequatur, magni obcaecati dolor excepturi modi alias ducimus incidunt cum doloremque harum tempora deleniti dignissimos nemo hic, velit, vitae expedita quas molestiae blanditiis reiciendis pariatur voluptates unde dolores. Adipisci minima quibusdam rem eos facere, nesciunt ipsam quos placeat deserunt ad ullam vitae odio vel nobis! Voluptatum minus nemo consectetur est. Impedit dolores sit magni ab nihil debitis accusamus beatae exercitationem quos, ex, reprehenderit iste optio eligendi delectus eos iusto accusantium, ipsam perspiciatis amet officia blanditiis minima explicabo deleniti? Repudiandae necessitatibus ea nobis distinctio veritatis, excepturi sequi temporibus harum quidem. Sed, harum! Quam necessitatibus iusto assumenda repudiandae atque odit vero facere sapiente eum quibusdam eveniet culpa aut impedit, doloribus quo. Exercitationem, adipisci eligendi. Nemo ad laborum repellat quas blanditiis delectus voluptatum, beatae quae, ullam accusamus mollitia ipsa excepturi saepe doloremque harum exercitationem, quis tempore dolore officia animi quam aperiam ratione. Delectus officiis libero sequi natus nemo cum vero, magnam rerum, sapiente corrupti quisquam blanditiis reprehenderit quidem autem nobis, quibusdam beatae aliquam debitis at! Totam sunt architecto provident minus rem deserunt quibusdam debitis dignissimos, consectetur dolorum corporis quos magnam quod nobis perspiciatis, soluta porro. Impedit, minima possimus facere voluptatibus sequi quia distinctio vitae corporis perferendis illum libero. Impedit fugiat, nesciunt adipisci voluptate culpa, quam nulla ab eligendi, architecto tenetur reiciendis! Saepe maiores quae, odit ut, quod quia commodi ullam non vero consequatur cum veritatis natus sed est quo, blanditiis autem quibusdam fuga. Rem recusandae quam ut velit repellendus non accusamus, illum nisi ducimus magni, facilis, suscipit consectetur deserunt? Laboriosam sed temporibus dolorem. Dolores molestias, sequi minima veniam explicabo ipsum voluptatibus voluptatem architecto quasi blanditiis voluptates facere, tempore aperiam, aspernatur laudantium provident quis qui optio incidunt tenetur ipsam perferendis ratione sint aliquam? Voluptatum iusto fuga praesentium nostrum deleniti totam accusantium corporis sunt? Saepe, sapiente facere! Dicta quas assumenda consectetur aut, ullam aliquam quam laboriosam voluptates vero, fugiat dolorem vel earum veritatis eaque dignissimos ad! Minima laudantium suscipit deserunt, molestias labore fugiat placeat assumenda earum exercitationem esse, dolorum accusamus ipsam accusantium sit non at reprehenderit fuga ducimus, unde cum eaque vel dolore. Ratione perferendis doloribus eum, suscipit placeat esse nam, at sit saepe, ipsum maiores illum. Iure provident dolor delectus eum, dolorem sint consequuntur veniam tempora nihil harum pariatur cum, minima dolorum porro reiciendis quisquam deleniti consectetur aliquam. Vel nostrum nulla nobis corporis est debitis perferendis fugiat reprehenderit eveniet eius! Possimus vero odio porro id ducimus magnam facilis eveniet animi sint enim facere consectetur doloribus assumenda sapiente exercitationem quo fugiat in obcaecati, odit similique, rem, voluptate non! Soluta, consequuntur consequatur iusto maiores alias quia! Magni expedita magnam, ut fuga perferendis obcaecati sit quisquam totam autem minus quos praesentium enim suscipit repellat dignissimos necessitatibus sint repellendus. Suscipit hic possimus voluptatum reiciendis esse qui illum fugit error necessitatibus soluta ad tenetur molestias minima blanditiis, dolorum, repellendus, animi veritatis impedit doloribus quidem. Explicabo eum atque error incidunt voluptates dicta laudantium quasi consequatur. Consectetur eum cum commodi dolorem laboriosam veniam odio enim. Exercitationem corporis quod laborum eius expedita qui iste voluptatem impedit dolorem voluptate quam nostrum, tenetur tempore. Quam sequi dolorum, odio labore exercitationem repudiandae ullam sit quisquam. Aspernatur minima, enim expedita perferendis fugiat sed provident, quaerat repellendus est quae assumenda quos blanditiis doloribus, dolorem alias neque quasi! A autem maiores quidem aliquam quisquam non. Corrupti, optio dolore dolores magnam veritatis alias? Cupiditate unde quae harum eum dolorem? Architecto ducimus, laborum, minus voluptatem quam molestiae maxime eos quibusdam qui quos voluptate eum fugiat recusandae omnis vitae numquam id, at sunt atque? Maiores facere autem provident vel, eligendi numquam deserunt nesciunt at excepturi sunt laudantium molestiae nemo nihil atque voluptate accusantium? Officia quis nesciunt dolorem voluptatibus non placeat a dolorum aut qui recusandae similique ipsa assumenda provident, quae neque pariatur voluptatem inventore, soluta quasi, architecto tempora labore expedita fugiat iste. Aspernatur unde quis sit aut quaerat qui rem eveniet, exercitationem eligendi repellendus deserunt dolorum voluptatum sunt nam maiores modi, veritatis tenetur laudantium, ea fugiat aliquam tempora. Eaque neque inventore natus hic quibusdam blanditiis et quos, fugiat dignissimos, voluptatum quas vel aut doloribus. Ipsum totam quisquam natus dolores quod aperiam tempora consequatur reprehenderit numquam harum nemo sint porro, repellat quibusdam quis pariatur iusto hic obcaecati unde, sunt aspernatur excepturi autem magnam dicta. Accusantium maxime officia dolores incidunt repellendus praesentium obcaecati, omnis, itaque sapiente dicta deserunt, recusandae debitis tempora! Quod excepturi vel enim optio eligendi quibusdam atque modi nostrum quas sint quos eveniet quasi officia eos saepe, totam debitis assumenda fugiat veritatis quaerat dicta ex non! Enim, aut! Beatae qui soluta, aperiam animi iure eveniet quos. Iusto cupiditate placeat perspiciatis tenetur omnis unde rerum ipsam, esse dolores ea perferendis sint fugit inventore dolorum iure dolor expedita nesciunt autem suscipit vel! Omnis doloremque expedita reprehenderit. Ullam nulla magni tempore, delectus excepturi quos assumenda at, rerum molestiae, vero quisquam quo corrupti! Reprehenderit dicta doloremque a commodi quae labore deserunt debitis expedita provident aspernatur adipisci, earum doloribus eos fugit magnam molestiae quasi odio? Neque omnis fugiat enim? Explicabo molestias consequuntur reiciendis, facere, ipsum dicta corporis officiis repellat delectus maiores veniam voluptate, cum vel odit deserunt numquam magni? Magnam numquam hic iusto sed a aut exercitationem consequatur commodi dolores laboriosam doloremque iste nisi alias nam id reprehenderit rem laborum magni recusandae deleniti architecto accusantium, provident doloribus itaque! Vero eum repellat cupiditate delectus, totam modi suscipit commodi consectetur ducimus voluptatibus eveniet aspernatur consequatur minima maiores aliquam hic ipsa voluptatum in incidunt harum quos. Iusto rerum culpa facilis, corporis vitae enim nisi odio eligendi vero sit nobis adipisci nam, facere aspernatur praesentium ducimus, unde omnis. Perferendis quam, facilis accusamus laborum voluptatem quod similique, necessitatibus, dolorum tempore molestias laudantium aliquam nulla. Optio molestias quae consequatur, error veritatis quo reiciendis illo, nihil, ipsa atque dolorum tempora nostrum! Neque, officia vero. Mollitia harum labore soluta eos aliquam, maiores nesciunt quidem ex totam perferendis ipsum incidunt. Animi quos officia laboriosam. Laudantium deleniti iure corrupti animi aspernatur repellendus aut eius, id optio sed saepe praesentium explicabo ❤❤❤ quod voluptatem illum officia omnis rerum, eum commodi? Ipsum, iusto. Eaque sed expedita pariatur molestiae consectetur facilis corporis adipisci laboriosam dicta sequi, cum ex rem, ullam at reiciendis temporibus cumque deserunt harum quisquam unde officiis! Eveniet necessitatibus numquam repellendus maiores hic. Fugit, iusto tempore nam modi soluta quisquam labore laudantium qui doloremque dolores nisi accusamus aliquam aperiam, ipsa veniam, quam quasi maiores ut placeat sint itaque aut! Totam, explicabo eveniet. Laboriosam, reprehenderit eius minima tenetur iste praesentium quo vel fugit non dignissimos similique vitae eligendi consequuntur delectus esse voluptatum excepturi porro a unde illum quam voluptate ipsam. Sit modi similique sed sequi, autem dolore rem quam alias doloribus quo quaerat nisi iste suscipit nobis praesentium est, ea voluptas quisquam? Pariatur deleniti minus necessitatibus, sed aliquam rem in suscipit consequatur corrupti quia enim magnam doloribus alias nisi fugit maxime quis eveniet minima fuga autem. Consequuntur possimus voluptatem quae inventore quod eaque nobis hic ad quibusdam eos, ab ipsa placeat doloremque amet laborum nulla. Accusamus iste nostrum quam ipsam tempora odio praesentium asperiores animi nisi iusto assumenda ipsa perspiciatis laboriosam laborum, possimus cupiditate obcaecati repudiandae eaque! Id quam provident in iure dolor inventore aspernatur ipsa quo rerum maiores, tempore, ratione qui voluptas dolorum iste praesentium sit voluptates eum tenetur sint delectus ipsam impedit? Laboriosam quaerat fuga tenetur a praesentium debitis aut quia quis, est dolores fugit cum incidunt sequi consectetur! Nulla veniam unde tenetur sit? Pariatur reprehenderit voluptate, non praesentium est, dolorum quibusdam labore impedit ea saepe eveniet eaque quos repellendus molestias tempore. Veritatis ut, magnam et voluptates neque doloribus amet reiciendis, id odio, maiores possimus tenetur sequi minus sed provident modi quisquam repudiandae exercitationem porro totam harum. Sapiente illo repellendus ut harum dolorum libero enim a?
     </div>
 
     <script>
-        // Store calibration data
         let calibrationData = {
             browser: null,
             contentHeight: null,
@@ -308,19 +235,14 @@
 
         function addPageBreakIndicators() {
             const content = document.getElementById('content');
-
-            // Remove old indicators
             content.querySelectorAll('.page-break-line').forEach(el => el.remove());
 
-            // Measure actual content height
             const contentHeight = content.scrollHeight;
             document.getElementById('content-height-display').textContent = contentHeight;
 
-            // Detect browser
             const browser = detectBrowser();
             document.getElementById('browser-name').textContent = browser;
 
-            // Get page height from input
             const pageHeightInput = document.getElementById('page-height-input');
             const pageHeight = parseFloat(pageHeightInput.value);
 
@@ -344,7 +266,6 @@
 
             const numPages = Math.ceil(contentHeight / pageHeight);
 
-            // Store calibration data
             calibrationData = {
                 browser,
                 contentHeight,
@@ -352,11 +273,9 @@
                 numPages
             };
 
-            // Calculate statistics
             const pagesRatio = contentHeight / pageHeight;
             const avgContentPerPage = contentHeight / numPages;
 
-            // Update info display
             const info = document.getElementById('calibration-info');
             info.innerHTML = `
                 <strong style="color: #0f0;">✓ Calibrated for ${browser}</strong><br><br>
@@ -370,7 +289,6 @@
                 <em style="color: #0ff;">Page breaks will match PDF output</em>
             `;
 
-            // Add visual indicators
             for (let i = 1; i < numPages; i++) {
                 const line = document.createElement('div');
                 line.className = 'page-break-line';
@@ -381,7 +299,6 @@
         }
 
         window.addEventListener('load', () => {
-            // Load saved calibration for this browser
             loadSavedCalibration();
             setTimeout(addPageBreakIndicators, 300);
         });
@@ -392,8 +309,25 @@
             resizeTimer = setTimeout(addPageBreakIndicators, 300);
         });
 
-        document.getElementById('download-pdf').addEventListener('click', async () => {
+        document.getElementById('download-pdf').addEventListener('click', async (e) => {
+            const btn = e.currentTarget;
+            const originalText = btn.innerHTML;
+            const controlElements = document.querySelectorAll('.controls input, .controls button');
+
             try {
+                controlElements.forEach(el => el.disabled = true);
+                btn.innerHTML = `
+                    <span class="flex items-center justify-center">
+                        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Downloading...
+                    </span>
+                `;
+                document.querySelector('.controls').classList.add('opacity-50');
+                btn.classList.add('cursor-not-allowed');
+
                 const response = await fetch('/generate-pdf', {
                     method: 'GET',
                     headers: { 'Accept': 'application/pdf' }
@@ -413,7 +347,6 @@
                 a.remove();
                 window.URL.revokeObjectURL(url);
 
-                // Show reminder to calibrate if not yet done
                 if (!calibrationData.pdfPageHeight) {
                     setTimeout(() => {
                         alert('PDF downloaded!\n\nNext step: Measure the page height in your PDF viewer and enter it in the control panel on the left.');
@@ -422,10 +355,14 @@
             } catch (err) {
                 console.error('Error downloading PDF:', err);
                 alert('Failed to download PDF: ' + err.message);
+            } finally {
+                controlElements.forEach(el => el.disabled = false);
+                btn.innerHTML = originalText;
+                document.querySelector('.controls').classList.remove('opacity-50');
+                btn.classList.remove('cursor-not-allowed');
             }
         });
 
-        // Allow Enter key to apply height
         document.getElementById('page-height-input').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 applyPageHeight();
