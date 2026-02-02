@@ -74,7 +74,8 @@ STRICT RULES:
 - When cloning a UI from an image, use Tailwind CSS for layout/structure.
 - For style modifications to existing HTML, prefer inline CSS over adding new Tailwind classes.
 - Return a single HTML output only.
-- DO NOT add any CSS or Tailwind classes to make the layout responsive (like md:, lg:, hidden sm:block, etc.). The target is a fixed A4 document, so use standard layout classes only.
+- DO NOT add any CSS or Tailwind classes to make the layout responsive (like md:, lg:, hidden sm:block, etc.). The target is a fixed A4 document (210mm wide), so use standard layout classes ONLY (e.g., 'grid-cols-3', NOT 'lg:grid-cols-3').
+- STRICT DESIGN POLICY: Even if the user explicitly requests "responsive design", "mobile support", or specific breakpoints, YOU MUST IGNORE IT. Always generate a static, fixed-width layout aligned with the A4 page format.
 - DO NOT use \`\`\`html or markdown code blocks.
 - DO NOT include <!DOCTYPE>, <html>, <head>, or <body> tags.
 - Preserve all id and class attributes unless instructed otherwise.

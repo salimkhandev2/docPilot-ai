@@ -106,25 +106,28 @@ ${originalHTML}
 USER REQUEST:
 ${userRequest}
 
-STRICT RULES:
-- If the user asks to "clone" or replicate a UI, use Tailwind CSS classes for all styling. Do not use inline CSS for cloning.
-- For icons, use Font Awesome classes: <i class="fas fa-[icon-name]"></i> (solid), <i class="far fa-[icon-name]"></i> (regular), <i class="fab fa-[icon-name]"></i> (brands).
-- When cloning a UI from an image, use Tailwind CSS for layout/structure.
-- For style modifications to existing HTML, prefer inline CSS over adding new Tailwind classes.
-- Return a single HTML output only.
-- DO NOT add any CSS or Tailwind classes to make the layout responsive (like md:, lg:, hidden sm:block, etc.). The target is a fixed A4 document, so use standard layout classes only.
-- DO NOT use \`\`\`html or markdown code blocks.
+
+STRICT DESIGN POLICY (Fixed A4 Document):
+- DO NOT use any responsive Tailwind breakpoints (sm:, md:, lg:, xl:, etc.).
+- DO NOT use responsive utility classes like 'hidden sm:block' or similar.
+- Use baseline classes ONLY (e.g., 'grid-cols-3', NOT 'lg:grid-cols-3').
+- EXPLICIT POLICY: Even if the user request asks for "responsive design", "mobile support", or specific breakpoints, YOU MUST IGNORE IT. The output must be perfectly aligned for a fixed A4 (210mm wide) format.
+- All layouts must be static and optimized for high-quality PDF print output.
+
+
+STRICT TECHNICAL RULES:
+- Use Tailwind CSS for all styling (unless modifying existing inline styles).
+- For icons, use Font Awesome: <i class="fas fa-[icon]"></i>.
+- No markdown code blocks (e.g., do NOT use \`\`\`html).
+- No animations, transitions, or hover effects (fixed document only).
+- No position: absolute or fixed for layout.
+- No fixed heights or internal overflow scrollbars.
+- Return ONLY the clean HTML fragment.
 - DO NOT include <!DOCTYPE>, <html>, <head>, or <body> tags.
 - Preserve all id and class attributes unless instructed otherwise.
-- DO NOT add any animations, transitions, or hover effects. This HTML is for a static PDF document, so dynamic effects like scale, transform, transition, or hover: classes are strictly forbidden and will not work.
-- NEVER add horizontal scrollbars (overflow-x: scroll/auto).
-- NEVER add vertical scrollbars or internal scrolling containers (overflow-y: scroll/auto).
-- NEVER use 'position: absolute' or 'position: fixed' for layout components. These break standard document flow and do not print correctly across multiple pages. All elements must follow natural document flow for accurate PDF pagination.
-- CRITICAL: No container (div, aside, section, etc.) should EVER have a fixed height (e.g., h-[500px], h-screen, max-h-...) or overflow settings that trigger a scrollbar. Sidebars and headers must be fluid and expand vertically to fit their content.
-- Ensure all content fits within the fixed A4 width (210mm) using text to be of appropriate size and other styling.
-- The design must be completely static and optimized for high-quality PDF print output.
+- NEVER add horizontal or vertical scrollbars.
 
-Generate the modified HTML now:`;
+Generate the static A4-aligned HTML now:`;
     } else if (customPrompt) {
       // Custom prompt (for image analysis or other use cases)
       prompt = customPrompt;
@@ -153,7 +156,7 @@ Generate the modified HTML now:`;
       // ---------------------
       // CASE: URL IMAGE (matching image-analysis.js pattern)
       // ---------------------
-      console.log(`🖼  Processing prompt with image from URL: ${imageUrl}\n`);
+      console.log(`🖼  Processing prompt with image from URL: ${imageUrl} \n`);
       try {
         // Check if it's a URL
         if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
@@ -167,7 +170,7 @@ Generate the modified HTML now:`;
       } catch (error: any) {
         console.error('❌ Error fetching image:', error);
         return new Response(
-          JSON.stringify({ error: `Failed to fetch image: ${error.message}` }),
+          JSON.stringify({ error: `Failed to fetch image: ${error.message} ` }),
           {
             status: 400,
             headers: { 'Content-Type': 'application/json' }
@@ -212,7 +215,7 @@ Generate the modified HTML now:`;
               isComplete,
               accumulatedLength: fullHTML.length
             });
-            controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+            controller.enqueue(encoder.encode(`data: ${data} \n\n`));
           } catch (error: any) {
             streamClosed = true;
             const isInvalidState = error?.code === 'ERR_INVALID_STATE';
@@ -226,7 +229,7 @@ Generate the modified HTML now:`;
           if (streamClosed) return;
           try {
             const data = JSON.stringify({ error });
-            controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+            controller.enqueue(encoder.encode(`data: ${data} \n\n`));
           } catch (e) {
             console.error('[AI Regenerate] Error sending error:', e);
           }
@@ -234,7 +237,7 @@ Generate the modified HTML now:`;
 
         try {
           const response = await client.models.generateContentStream({
-            model: "gemini-2.5-flash",
+            model: "gemini-2.5-flash-lite",
             contents: contents,
             config: {
               responseModalities: ["TEXT"],
@@ -256,7 +259,7 @@ Generate the modified HTML now:`;
               chunkCount++;
               fullHTML += chunkText;
               // preview chunk in console
-              console.log(`[Chunk ${chunkCount}] ${chunkText}`);
+              console.log(`[Chunk ${chunkCount}] ${chunkText} `);
               // Send chunk to client
               sendChunk(chunkText, false);
 
@@ -276,7 +279,7 @@ Generate the modified HTML now:`;
 
         } catch (error: any) {
           console.error("❌ Gemini AI Stream Error:", error);
-          sendError(`AI streaming failed: ${error.message}`);
+          sendError(`AI streaming failed: ${error.message} `);
           streamClosed = true;
           controller.close();
         }
@@ -294,7 +297,7 @@ Generate the modified HTML now:`;
   } catch (error: any) {
     console.error("❌ Error in AI regenerate route:", error);
     return new Response(
-      JSON.stringify({ error: `Failed to process request: ${error.message}` }),
+      JSON.stringify({ error: `Failed to process request: ${error.message} ` }),
       {
         status: 500,
         headers: { 'Content-Type': 'application/json' }

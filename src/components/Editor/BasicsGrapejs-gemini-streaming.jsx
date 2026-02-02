@@ -829,7 +829,7 @@ opacity: 0.8;
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error('PDF export error:', error);
-      alert('Failed to generate PDF: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      alert('Failed to ge nerate PDF: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setIsGeneratingPDF(false);
     }
@@ -1450,13 +1450,53 @@ function syncDOMNodes(src, dest) {
 //======================================================================
 // RESPONSE CLEANING
 //======================================================================
+
+/**
+ * Programmatically removes or normalizes Tailwind responsive breakpoints
+ * to ensure alignment with a fixed A4 document.
+ * OPTIMIZED: Targets only class attributes for maximum performance.
+ */
+function stripTailwindBreakpoints(html) {
+  if (!html || typeof html !== 'string') return html;
+
+  // Faster approach: Targeted regex that only processes strings inside class="..."
+  // This avoids scanning every piece of text in the HTML.
+  return html.replace(/class="([^"]*)"/g, (match, classList) => {
+    if (!classList) return match;
+
+    // Process only if the list contains a colon (likely a breakpoint or state)
+    if (classList.indexOf(':') === -1) return match;
+
+    const cleaned = classList
+      .split(/\s+/)
+      .map(cls => {
+        const colonIdx = cls.indexOf(':');
+        if (colonIdx === -1) return cls;
+
+        // Check if prefix is one of the target responsive breakpoints
+        const prefix = cls.substring(0, colonIdx);
+        if (['sm', 'md', 'lg', 'xl', '2xl'].includes(prefix)) {
+          return cls.substring(colonIdx + 1);
+        }
+        return cls;
+      })
+      .join(' ');
+
+    return `class="${cleaned}"`;
+  });
+}
+
 function cleanAIResponse(html) {
   let cleaned = html.replace(/^html\s*/i, '').replace(/^\s*/i, '').replace(/\s*```$/i, '').trim();
   cleaned = cleaned.trim();
   cleaned = cleaned.replace(/^<!DOCTYPE[^>]*>/i, '');
-  cleaned = cleaned.replace(/^<html[^>]>/i, '').replace(/<\/html>\s$/i, '');
-  cleaned = cleaned.replace(/^<head[^>]>.?<\/head>/is, '');
-  cleaned = cleaned.replace(/^<body[^>]>/i, '').replace(/<\/body>\s$/i, '');
+  cleaned = cleaned.replace(/^<html[^>]*>/i, '').replace(/<\/html>\s*$/i, '');
+  cleaned = cleaned.replace(/<head[^>]*>.*?<\/head>/is, '');
+  cleaned = cleaned.replace(/^<body[^>]*>/i, '').replace(/<\/body>\s*$/i, '');
+
+  // CRITICAL: Strip all breakpoints to lock layout for A4 PDF export
+  cleaned = stripTailwindBreakpoints(cleaned);
+
   return cleaned.trim();
 }
 
