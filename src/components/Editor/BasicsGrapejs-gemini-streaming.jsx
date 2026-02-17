@@ -559,7 +559,13 @@ if (typeof tailwind !== 'undefined') {
 
                 // Stream from selected AI provider
                 const streamFn = aiProvider === 'openrouter' ? streamOpenRouterAI : streamGeminiAI;
-                const cleanedHTML = await streamFn(originalHTML, userRequest, imageFile, imageUrl, openRouterModel, (chunk, isComplete) => {
+                const size = PAGE_SIZES[pageSizeRef.current]?.[orientationRef.current];
+                const frameDoc = editor.Canvas.getDocument();
+                const pixelWidth = convertToPixels(size.width, frameDoc);
+                const physWidth = size.width;
+                const physHeight = size.height;
+
+                const cleanedHTML = await streamFn(originalHTML, userRequest, imageFile, imageUrl, openRouterModel, physHeight, physWidth, (chunk, isComplete) => {
                   accumulatedHTML += chunk;
 
                   if (isComplete || (accumulatedHTML && accumulatedHTML !== latestHTML)) {
@@ -1196,7 +1202,7 @@ opacity: 0.8;
 //======================================================================
 // GEMINI AI STREAMING (via backend)
 //======================================================================
-async function streamGeminiAI(originalHTML, userRequest, imageFile, imageUrl, model, onChunk) {
+async function streamGeminiAI(originalHTML, userRequest, imageFile, imageUrl, model, physH, physW, onChunk) {
   try {
     console.log("🚀 Starting Gemini AI stream via backend...");
 
@@ -1302,7 +1308,7 @@ async function streamGeminiAI(originalHTML, userRequest, imageFile, imageUrl, mo
     }
 
     // Clean and return the accumulated HTML
-    fullHTML = cleanAIResponse(fullHTML);
+    fullHTML = cleanAIResponse(fullHTML, physH, physW);
     return fullHTML;
 
   } catch (error) {
@@ -1314,7 +1320,7 @@ async function streamGeminiAI(originalHTML, userRequest, imageFile, imageUrl, mo
 //======================================================================
 // OPENROUTER AI STREAMING (via backend)
 //======================================================================
-async function streamOpenRouterAI(originalHTML, userRequest, imageFile, imageUrl, model, onChunk) {
+async function streamOpenRouterAI(originalHTML, userRequest, imageFile, imageUrl, model, physH, physW, onChunk) {
   try {
     console.log("🚀 Starting OpenRouter AI stream via backend...");
     console.log("🤖 Using model:", model);
@@ -1384,7 +1390,7 @@ async function streamOpenRouterAI(originalHTML, userRequest, imageFile, imageUrl
     }
 
     // Clean and return the accumulated HTML
-    fullHTML = cleanAIResponse(fullHTML);
+    fullHTML = cleanAIResponse(fullHTML, physH, physW);
     return fullHTML;
 
   } catch (error) {
@@ -1454,48 +1460,107 @@ function syncDOMNodes(src, dest) {
 // RESPONSE CLEANING
 //======================================================================
 
+
 /**
- * Programmatically removes or normalizes Tailwind responsive breakpoints
- * to ensure alignment with a fixed A4 document.
- * OPTIMIZED: Targets only class attributes for maximum performance.
+ * Efficient one-pass sanitizer for A4 PDF documents.
+ * Converts viewport-relative units to fixed equivalents instead of removing them,
+ * preserving the AI's layout intent while ensuring PDF compatibility.
+ *
+ * Mapping strategy (A4 page = 210mm x 297mm ≈ 794px x 1123px at 96dpi):
+ *   h-screen / min-h-screen  →  min-h-[1123px]  (= one A4 page height)
+ *   h-full                   →  h-auto           (content-driven)
+ *   w-screen                 →  w-[210mm]        (fixed A4 page width)
+ *   h-[100vh]                →  h-[1123px]       (JIT value converted)
+ *   style="height:100vh"     →  style="height:1123px"
  */
-function stripTailwindBreakpoints(html) {
+function getProblematicClassReplacement(cls, heightStr, widthStr) {
+  const map = {
+    'h-screen': `min-h-[${heightStr}]`,
+    'min-h-screen': `min-h-[${heightStr}]`,
+    'max-h-screen': `max-h-[${heightStr}]`,
+    'h-full': 'h-auto',
+    'min-h-full': `min-h-[${heightStr}]`,
+    'w-screen': `w-[${widthStr}]`,
+    'min-w-screen': `w-[${widthStr}]`,
+  };
+  return map[cls];
+}
+
+function sanitizeA4Styles(html, physH = '297mm', physW = '210mm') {
   if (!html || typeof html !== 'string') return html;
 
-  // Faster approach: Targeted regex that only processes strings inside class="..."
-  // This avoids scanning every piece of text in the HTML.
+  // Helper to parse "297mm" -> { val: 297, unit: "mm" }
+  const parsePhys = (str) => {
+    const m = str.match(/^([\d.]+)([a-z%]+)$/i);
+    return m ? { val: parseFloat(m[1]), unit: m[2] } : { val: 0, unit: 'px' };
+  };
+
+  const h = parsePhys(physH);
+  const w = parsePhys(physW);
+
   return html.replace(/class="([^"]*)"/g, (match, classList) => {
     if (!classList) return match;
-
-    // Process only if the list contains a colon (likely a breakpoint or state)
-    if (classList.indexOf(':') === -1) return match;
 
     const cleaned = classList
       .split(/\s+/)
       .map(cls => {
-        const colonIdx = cls.indexOf(':');
-        if (colonIdx === -1) return cls;
+        if (!cls) return '';
 
-        // Check if prefix is one of the target responsive breakpoints
-        const prefix = cls.substring(0, colonIdx);
-        if (['sm', 'md', 'lg', 'xl', '2xl'].includes(prefix)) {
-          return cls.substring(colonIdx + 1);
+        // 1. Collapse breakpoints (sm:flex → flex)
+        const colonIdx = cls.indexOf(':');
+        if (colonIdx !== -1) {
+          const prefix = cls.substring(0, colonIdx);
+          if (['sm', 'md', 'lg', 'xl', '2xl'].includes(prefix)) {
+            cls = cls.substring(colonIdx + 1);
+          }
         }
+
+        // 2. Replace known problematic classes
+        const replacement = getProblematicClassReplacement(cls, physH, physW);
+        if (replacement) return replacement;
+
+        // 3. Convert JIT viewport values inside brackets (case-insensitive)
+        if (cls.includes('[') && (/[0-9.]v[hw]/i.test(cls))) {
+          return cls.replace(/(\d+(?:\.\d+)?)v([hw])/gi, (_, num, unit) => {
+            const base = unit.toLowerCase() === 'h' ? h : w;
+            const finalVal = ((parseFloat(num) / 100) * base.val).toFixed(2);
+            return `${finalVal}${base.unit}`;
+          });
+        }
+
+        // 4. Convert embedded physical dimensions inside brackets
+        if (cls.includes('[')) {
+          return cls
+            .replace(/297\s*mm|29\.7\s*cm|11\s*in/gi, physH)
+            .replace(/210\s*mm|21\s*cm|8\.5\s*in/gi, physW);
+        }
+
         return cls;
       })
+      .filter(Boolean)
       .join(' ');
 
-    return `class="${cleaned}"`;
-  });
+    return `class="${cleaned.trim()}"`;
+  })
+    // 5. Convert viewport units in inline styles
+    .replace(/style="([^"]*)"/gi, (match, styles) => {
+      if (!styles.toLowerCase().includes('vh') && !styles.toLowerCase().includes('vw')) return match;
+      const cleaned = styles.replace(/(\d+(?:\.\d+)?)v([hw])/gi, (_, num, unit) => {
+        const base = unit.toLowerCase() === 'h' ? h : w;
+        const finalVal = ((parseFloat(num) / 100) * base.val).toFixed(2);
+        return `${finalVal}${base.unit}`;
+      });
+      return `style="${cleaned}"`;
+    });
 }
 
-function cleanAIResponse(html) {
+function cleanAIResponse(html, physH, physW) {
   let cleaned = html.trim();
 
   // Remove markdown code fences (```html and ```)
-  cleaned = cleaned.replace(/^```html\s*/i, '');  // Remove opening ```html
-  cleaned = cleaned.replace(/^```\s*/i, '');       // Remove opening ``` (if no language specified)
-  cleaned = cleaned.replace(/\s*```$/i, '');       // Remove closing ```
+  cleaned = cleaned.replace(/^```html\s*/i, '');
+  cleaned = cleaned.replace(/^```\s*/i, '');
+  cleaned = cleaned.replace(/\s*```$/i, '');
 
   // Remove HTML document wrappers
   cleaned = cleaned.replace(/^<!DOCTYPE[^>]*>/i, '');
@@ -1503,8 +1568,8 @@ function cleanAIResponse(html) {
   cleaned = cleaned.replace(/<head[^>]*>.*?<\/head>/is, '');
   cleaned = cleaned.replace(/^<body[^>]*>/i, '').replace(/<\/body>\s*$/i, '');
 
-  // CRITICAL: Strip all breakpoints to lock layout for A4 PDF export
-  cleaned = stripTailwindBreakpoints(cleaned);
+  // CRITICAL: Strip all breakpoints and viewport units
+  cleaned = sanitizeA4Styles(cleaned, physH, physW);
 
   return cleaned.trim();
 }
