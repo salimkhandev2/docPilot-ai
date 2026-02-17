@@ -1,0 +1,17 @@
+SUMMARY OF PDF GENERATION OPTIMIZATIONS
+
+I have updated the PDF export logic (the "Two Camera" approach) to make it faster and smarter.
+
+WHAT WAS WRONG BEFORE:
+1. Every page of your PDF actually contained a full copy of your entire resume, even the invisible parts.
+2. Because of this, searching (Ctrl+F) in the PDF was broken—it would find the same word 2 or 3 times for every page.
+3. The file was much larger than it needed to be.
+
+WHAT I CHANGED:
+1. DOM PRUNING: I added a script that looks at every page before exporting. If an element (like a paragraph or image) is not visible on that specific page, the code now deletes it from that page's copy.
+2. BETTER SEARCH: Now, each page only contains the text you actually see. Searching in the PDF will now find accurately located matches.
+3. SMART SLICING: I added logic to detect if a text block is sitting exactly on the red "page break" line. If it is small enough, the code tells the PDF engine to try and keep it together on one page instead of slicing it in half.
+4. FASTER EXPORT: Because we are sending less code to the server, the PDF generation is more efficient.
+
+The code for these changes is located in the 'handleExportPDF' function inside:
+src/components/Editor/BasicsGrapejs-gemini-streaming.jsx

@@ -1,0 +1,119 @@
+================================================================================
+  DOM PRUNING OPTIMIZATION FOR TWO-CAMERA PDF PAGINATION
+================================================================================
+
+PROBLEM
+-------
+The "Two Camera" approach duplicates the ENTIRE document HTML once per page:
+
+  Page 1: [full document] shifted by 0px
+  Page 2: [full document] shifted by 1123px
+  Page 3: [full document] shifted by 2246px
+  ...
+
+For N pages, the DOM = N × full_document = O(N²) complexity.
+A 52-page document at 15MB = 780MB of DOM → Playwright crashes.
+
+
+THE TWO CAMERA TRICK (EXISTING)
+-------------------------------
+1. pdf-viewport: A fixed-size box (A4 height = 1123px) with overflow:hidden.
+   Acts as the "camera lens" — only shows what fits inside.
+
+2. pdf-shifter: Contains the FULL document inside the viewport.
+   Uses transform:translateY(-Npx) to "scroll" to the right page.
+
+   Page 1 → translateY(0px)       → see the top
+   Page 2 → translateY(-1123px)   → see the middle
+   Page 3 → translateY(-2246px)   → see the bottom
+
+
+THE OPTIMIZATION (NEW)
+----------------------
+After Playwright loads the full HTML (all N viewports), but BEFORE generating
+the PDF, we run a DOM pruning script inside the browser:
+
+For each pdf-viewport:
+  1. Read data-page-index and data-page-height attributes
+  2. Calculate the visible Y-range: [pageIndex × pageHeight, (pageIndex+1) × pageHeight]
+  3. Recursively walk the DOM tree inside the pdf-shifter
+  4. For each element, calculate its ABSOLUTE position (via offsetParent chain)
+  5. Decision:
+     - ABOVE visible range → Replace with empty spacer div of same height + margins
+       (Must preserve height or content below shifts up, breaking translateY alignment)
+     - BELOW visible range → Remove entirely (safe, doesn't affect layout above)
+     - INSIDE visible range → Keep as-is
+     - PARTIALLY overlapping → Recurse into its children for finer-grained pruning
+
+
+KEY TECHNICAL DETAILS
+---------------------
+
+1. WHY SPACERS (NOT REMOVE) FOR "ABOVE" ELEMENTS:
+   The translateY(-Npx) was calculated assuming all content above exists.
+   If we remove it, everything shifts up → page breaks drift.
+   Spacers preserve the exact vertical space (height + margins).
+
+2. WHY MARGINS ON SPACERS:
+   offsetHeight does NOT include CSS margins. Original elements have margins
+   that contribute to document flow. Spacers must copy marginTop/marginBottom
+   via getComputedStyle() or the cumulative height loss causes the last page
+   to drift out of view.
+
+3. WHY ABSOLUTE OFFSET CALCULATION:
+   offsetTop is relative to the nearest POSITIONED ancestor (offsetParent),
+   not necessarily the pdf-shifter. When recursing into nested containers
+   (e.g., GrapesJS's wrapper div), offsetTop values become local to that
+   container. We use getAbsoluteTop() to walk the offsetParent chain up
+   to the pdf-shifter, giving the true document-space position.
+
+   function getAbsoluteTop(el, ancestor):
+     top = 0
+     current = el
+     while current != ancestor:
+       top += current.offsetTop
+       current = current.offsetParent
+     return top
+
+4. WHY RECURSIVE (NOT TOP-LEVEL ONLY):
+   GrapesJS wraps all content in a single wrapper div. Top-level pruning
+   finds only 1 child (the wrapper) that spans the entire document → 
+   nothing gets pruned (0 removed, 0 collapsed). Recursing into partially-
+   overlapping containers allows pruning at deeper levels.
+
+5. SAFETY BUFFER (50px):
+   Elements near page boundaries get a 50px grace zone to avoid cutting off
+   box-shadows, overflows, or content that bleeds slightly across boundaries.
+
+
+COMPLEXITY REDUCTION
+--------------------
+  Before: O(N × full_content)  = O(N²) total DOM
+  After:  O(N × page_content)  ≈ O(N) total DOM
+
+  | Pages | Content | Before    | After   |
+  |-------|---------|-----------|---------|
+  | 10    | 10MB    | 100MB     | ~10MB   |
+  | 52    | 15MB    | 780MB     | ~15MB   |
+  | 100   | 10MB    | 1,000MB   | ~10MB   |
+  | 400   | 10MB    | 4,000MB   | ~10MB   |
+
+
+FILES MODIFIED
+--------------
+1. src/components/Editor/BasicsGrapejs-gemini-streaming.jsx (lines 746-768)
+   - Added data-page-index and data-page-height attributes to pdf-viewport divs
+
+2. src/app/api/playwright/route.tsx (after page.setContent, before PDF generation)
+   - Added the recursive DOM pruning script via page.evaluate()
+
+
+LIMITATIONS
+-----------
+- The initial HTML string is still duplicated N times on the frontend before
+  sending to Playwright. For extremely large documents, this string itself
+  could be large. A perfect solution would avoid duplication entirely 
+  (e.g., render one page at a time server-side).
+- The pruning runs inside Playwright after full layout calculation, so
+  the browser still does a one-time O(N²) layout pass before pruning.
+  The savings come during the PDF rendering phase (much lighter DOM to paint).

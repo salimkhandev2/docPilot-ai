@@ -34,7 +34,7 @@ You are a master book designer at Penguin Classics with 30 years of experience c
 Create a SINGLE, completely STATIC HTML file for a literary fiction novel titled  
 “Salt & Marrow” by Juno Reyes
 
-The file must simulate a complete physical book in exact A4 format (210 × 297 mm) when printed or viewed at 100% zoom, with vertical scrolling to turn pages.
+The file must simulate a complete physical book formatted for A4 (210mm wide), using a continuous vertical scroll (Natural Flow) that expands to accommodate all chapters without manual page breaks.
 
 Structure (in exact order, all visible when scrolling):
 
@@ -58,9 +58,9 @@ Structure (in exact order, all visible when scrolling):
      Chapter III  The Salt Cellar ..................... 31
      etc. (continue to at least Chapter V)
 
-5–20. BOOK INTERIOR PAGES (16 text pages total)
-   - Each "page" is exactly 297mm tall × 210mm wide
-   - Stacked vertically with no visible borders
+5–20. BOOK INTERIOR PAGES (16 text pages equivalent)
+   - Content should be a continuous vertical flow with no fixed height per 'page'
+   - Wrappers should be 210mm wide to match A4
    - Cream paper texture background + subtle grain
    - Margins: top 25mm, bottom 30mm, left/right 25mm, gutter simulation via centered text block (max 140mm wide)
    - Body text: EB Garamond 11pt equivalent, leading ~1.6, fully justified, hyphens-auto
@@ -92,7 +92,7 @@ Tech restrictions:
 - NO custom CSS outside Tailwind classes
 
 Rules (break any = instant failure):
-- Exact A4 page dimensions (210mm × 297mm per page block)
+- Fixed A4 Width (210mm), allowing vertical height to grow naturally (Auto-Pagination)
 - Must look indistinguishable from a real $45 hardcover when printed on A4
 - Single HTML file
 - 100% Tailwind classes only
@@ -105,7 +105,7 @@ You are a senior graphic designer at Pentagram specializing in luxury executive 
 
 Create a SINGLE, completely STATIC HTML file for a one-page, slightly fancy professional resume of Dr. Alexander Chen, a 38-year-old cardiothoracic surgeon and medical researcher.
 
-The file must be in exact A4 format (210 × 297 mm) when printed or viewed at 100% zoom — designed as a single elegant vertical page optimized for printing.
+The file must be exactly 210mm wide (A4 width) and use a continuous vertical flow (Natural Flow) that expands to fit all content for optimized printing.
 
 Design aesthetic: Refined luxury — timeless, understated elegance with subtle sophistication (think Hermès meets medical precision).
 
@@ -158,7 +158,7 @@ Tech restrictions:
 - NO custom CSS outside Tailwind classes or config
 
 Rules (break any = failure):
-- Exact A4 dimensions (210mm × 297mm container)
+- Fixed A4 Width (210mm) with continuous vertical growth (Natural Flow)
 - Must fit elegantly on one A4 page with generous whitespace
 - Horizontal baseline rules MUST be continuous, subtle, and text perfectly aligned on them
 - Must look like a £500 bespoke executive resume when printed on cotton paper

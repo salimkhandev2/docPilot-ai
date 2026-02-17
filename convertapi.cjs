@@ -1,8 +1,8 @@
-const convertapi = require('convertapi')('usJDrSIme5ou2fPbsyNDtBgUO2v96GDa');
+const convertapi = require('convertapi')('Re5oQuPQbye4GdlAY4Nj9kdpRFAArTdE');
 const path = require('path');
 
 async function main() {
-    const pdfPath = path.resolve(__dirname, 'design (19).pdf');
+    const pdfPath = path.resolve(__dirname, 'toconvert.pdf');
   const outDir = __dirname;
 
   console.log('Converting PDF to DOCX...');

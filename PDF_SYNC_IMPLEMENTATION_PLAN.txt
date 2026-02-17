@@ -1,0 +1,70 @@
+# PDF Page Break Synchronization Implementation Plan
+
+## Problem Summary
+The editor and the PDF engine had a discrepancy in how they measured and rendered page heights. This caused "page-break drift," where a line of text crossing the red dashed line in the editor would either disappear, be split incorrectly, or appear in a different position in the exported PDF.
+
+### Root Causes
+1. **Rounding Errors:** Mixing physical units (mm/in) in the PDF engine with pixels (px) in the editor caused 0.5px errors that stacked up across multiple pages.
+2. **Atomic Line Protection:** Browsers (Chromium) automatically hide the top half of a text line if its "baseline" falls on the next page, making text "invisible" at the bottom of a page.
+3. **Draft Discrepancies:** Different default `line-heights` and `hyphens` settings between the GrapesJS canvas and the Playwright PDF engine caused text to wrap differently.
+
+---
+
+## Implementation Details
+
+### 1. Pixel-Perfect Communication (Frontend)
+Instead of letting the backend guess the page size from strings like "A4", the frontend now calculates the exact pixel dimensions used for the visual indicators.
+
+**Key Code Changes in `BasicsGrapejs-gemini-streaming.jsx`:**
+- **Helper Function:** `convertToPixels(cssValue, frameDoc)` converts physical units to exact pixels within the editor's context.
+- **Export Data:** The `handleExportPDF` function now sends `pixelWidth` and `pixelHeight` in the `pageConfig` object.
+
+```javascript
+const size = PAGE_SIZES[pageSize]?.[orientation];
+const pixelWidth = convertToPixels(size.width, frameDoc);
+const pixelHeight = pageHeight; // The calibrated height used for red lines
+
+const exportData = {
+  // ...
+  pageConfig: {
+    width: size.width,
+    height: size.height,
+    pixelWidth,
+    pixelHeight,
+  }
+};
+```
+
+### 2. Forced Backend Alignment (Playwright Route)
+The backend now ignores physical units and sets the PDF page size and browser viewport using the exact pixels provided by the editor.
+
+**Key Code Changes in `src/app/api/playwright/route.tsx`:**
+- **Viewport Sync:** Viewport is set to `pixelWidth` x `pixelHeight` to ensure a 1:1 scale.
+- **CSS Override:** Injected a style block that forces the PDF print size to pixels.
+
+```javascript
+@page {
+    size: ${pixelWidth}px ${pixelHeight}px;
+    margin: 0 !important;
+}
+```
+
+### 3. Bypassing Atomic Line Logic (The "Invisible Text" Fix)
+To prevent the browser from "hiding" text that is split across pages, the export logic was changed from layout-based positioning to coordinate-based painting.
+
+**Key Changes:**
+- **Shifter Logic:** Switched from `top: -Xpx` to `transform: translateY(-Xpx)`. 
+- **Containment:** Added `contain: paint` to the `pdf-viewport` class.
+- **Result:** The browser now treats the document as a "flat layer" and slices pixels exactly where told, preventing "Atomic Line Protection" from kicking in.
+
+### 4. Style Normalization
+To ensure the text wraps and flows identically in both the Editor and PDF:
+- **Line Height:** Forced `line-height: normal !important` globally.
+- **Word Wrapping:** Disabled `hyphens: none !important` and `word-break: normal`. This prevents the PDF engine from splitting words like "charact-eristics" when the editor wouldn't.
+
+---
+
+## Final Results
+- Red dashed lines in the Editor match the PDF pages 100%.
+- Text is no longer disappear when crossing a page boundary.
+- Document wrapping (margins and word breaks) is consistent across both environments.

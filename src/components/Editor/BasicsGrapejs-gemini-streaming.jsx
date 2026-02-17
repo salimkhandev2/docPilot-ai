@@ -444,8 +444,8 @@ if (typeof tailwind !== 'undefined') {
             imageFile: null,
             imageUrl: '',
             imagePreview: null,
-            aiProvider: 'openrouter',
-            openRouterModel: OPENROUTER_MODELS[4], // Select Alibaba model
+            aiProvider: 'gemini',
+            openRouterModel: OPENROUTER_MODELS[0],
             onSubmit: async (userRequest, imageFile, imageUrl, aiProvider, openRouterModel) => {
               if (!userRequest.trim()) {
                 alert('Please enter a request');
@@ -719,42 +719,45 @@ opacity: 0.8;
 
       const wrapper = editor.getWrapper();
       const wrapperEl = wrapper?.view?.el;
+      const frameDoc = editor.Canvas.getDocument();
 
-      // 1. Calculate the required number of pages based on the total scroll height
+      // --- FRONTEND LAYOUT SETTLE ---
+      if (wrapperEl && frameDoc) {
+        // 1. Wait for all images in the canvas to be ready
+        const images = Array.from(frameDoc.querySelectorAll('img'));
+        await Promise.all(images.map(img => {
+          if (img.complete) return Promise.resolve();
+          return new Promise(res => { img.onload = res; img.onerror = res; });
+        }));
+
+        // 2. Forced reflow + small settle time for Tailwind JIT
+        void frameDoc.body.offsetHeight;
+        await new Promise(r => setTimeout(r, 300));
+      }
+
+      // 1. Calculate the required number of pages
       const pageHeight = pdfPageHeightRef.current || 1123;
       const scrollHeight = wrapperEl ? wrapperEl.scrollHeight : 0;
-      const numPages = Math.max(1, Math.ceil(scrollHeight / pageHeight));
+
+      // Robust calculation: Dynamically measure the padding applied to the wrapper
+      let verticalPadding = 0;
+      if (wrapperEl) {
+        const style = frameDoc ? frameDoc.defaultView.getComputedStyle(wrapperEl) : window.getComputedStyle(wrapperEl);
+        verticalPadding = (parseFloat(style.paddingTop) || 0) + (parseFloat(style.paddingBottom) || 0);
+      }
+
+      // Subtract padding and use a 2px safety buffer for rounding
+      const actualContentHeight = Math.max(0, scrollHeight - verticalPadding - 2);
+      const numPages = Math.max(1, Math.ceil(actualContentHeight / pageHeight));
 
       // 2. Get and clean the content HTML
       let contentHtml = wrapperEl ? wrapperEl.innerHTML : editor.getHtml();
       contentHtml = await convertBlobURLsToBase64(contentHtml);
 
-      // 3. Transform single continuous HTML into multiple "harshly" cut viewports
-      let segmentedHtml = '';
-
-      for (let i = 0; i < numPages; i++) {
-        segmentedHtml += `
-          <div class="pdf-viewport" style="
-            height: ${pageHeight}px; 
-            overflow: hidden; 
-            position: relative; 
-            page-break-after: always;
-            width: 100%;
-            background: white;
-            contain: paint;
-          ">
-            <div class="pdf-shifter" style="
-              position: relative; 
-              transform: translateY(-${i * pageHeight}px); 
-              width: 100%;
-              transform-origin: top left;
-              will-change: transform;
-            ">
-              ${contentHtml}
-            </div>
-          </div>
-        `;
-      }
+      // 3. Optimized Architecture: Send the source HTML and the page count separately
+      // Instead of duplicating HTML here (which bloats the request), 
+      // we send it once and let the backend construct the viewports.
+      const singleHtml = contentHtml;
 
       let css = editor.getCss();
 
@@ -787,12 +790,12 @@ opacity: 0.8;
       ` + "\n" + css;
 
       const size = PAGE_SIZES[pageSize]?.[orientation];
-      const frameDoc = editor.Canvas.getDocument();
       const pixelWidth = convertToPixels(size.width, frameDoc);
       const pixelHeight = pageHeight;
 
       const exportData = {
-        html: segmentedHtml,
+        html: singleHtml,
+        numPages, // Tell the backend how many "Camera" segments to create
         css,
         pageConfig: {
           width: size.width,
@@ -1487,8 +1490,14 @@ function stripTailwindBreakpoints(html) {
 }
 
 function cleanAIResponse(html) {
-  let cleaned = html.replace(/^html\s*/i, '').replace(/^\s*/i, '').replace(/\s*```$/i, '').trim();
-  cleaned = cleaned.trim();
+  let cleaned = html.trim();
+
+  // Remove markdown code fences (```html and ```)
+  cleaned = cleaned.replace(/^```html\s*/i, '');  // Remove opening ```html
+  cleaned = cleaned.replace(/^```\s*/i, '');       // Remove opening ``` (if no language specified)
+  cleaned = cleaned.replace(/\s*```$/i, '');       // Remove closing ```
+
+  // Remove HTML document wrappers
   cleaned = cleaned.replace(/^<!DOCTYPE[^>]*>/i, '');
   cleaned = cleaned.replace(/^<html[^>]*>/i, '').replace(/<\/html>\s*$/i, '');
   cleaned = cleaned.replace(/<head[^>]*>.*?<\/head>/is, '');

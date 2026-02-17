@@ -1,0 +1,60 @@
+PROBLEM:
+now how i can solve this problem only to so that to keep the two camera approach and the wrod should not be splitted into two ie if a word lie at the exact boundry then you should show the page brekaer indicator in the frontend above this and when making the pdf then that text should be showin in the next page or you  can adopt any alternativce best arichtecurral solution , to only avoid that half word or text spliting while keeping the synchorinazation betwen the pdf and the brower, first search about all possible archi that can solve that and then find the best one which fit this problem then apply
+
+ARCHITECTURAL DOCUMENT: SMART BOUNDARY MANAGEMENT (TWO CAMERA APPROACH)
+-----------------------------------------------------------------------
+
+This document outlines the architecture used to solve horizontal text splitting and duplicate search issues in the "Two Camera" HTML-to-PDF system.
+
+1. THE CORE PROBLEM (HORIZONTAL SPLITTING)
+------------------------------------------
+In a "Two Camera" approach, the entire document HTML is repeated for every page. CSS offsets (translateY) are used to align the "viewport" to the next page section.
+The issue: If a line of text sits exactly on the 297mm (A4) boundary, the top half of the letters appear on Page 1 and the bottom half on Page 2. This is "Blind Splitting."
+
+2. THE SOLUTION: "DEEP-SCAN LEAF PUSHING"
+-----------------------------------------
+Instead of pushing large containers (which creates huge gaps), we use a recursive scanning strategy.
+
+A. RECURSIVE LEAF SCANNING:
+The system performs a "Deep Scan" of every component in the GrapesJS tree. It ignores containers and focuses specifically on "Leaf Nodes" (p, h1-h6, span, li, img).
+
+B. NATURAL COORDINATE CALCULATION:
+For every leaf element, we calculate its "Natural Position"—where it would sit if no auto-spacing was applied.
+- formula: NaturalTop = (CurrentTop - PreviousPushAmount)
+
+C. BOUNDARY COLLISION DETECTION:
+If a leaf element's NaturalTop is above a page boundary but its NaturalBottom is below it, a "Collision" is detected.
+
+D. DYNAMIC MARGIN INJECTION:
+The system calculates the exact pixel overlap and injects a 'margin-top' into that specific component.
+- effect: The text block "repels" away from the red page-break line and slides to the top of the next page copy.
+
+E. PUSH STABILITY & STATE TRACKING:
+To prevent jitter and infinite loops, the amount pushed is stored in a 'data-prev-push' attribute. Before every scan, this value is subtracted to ensure we are always calculating relative to the natural document flow.
+
+3. PDF OPTIMIZATION: "GHOST PRUNING"
+------------------------------------
+Repetition of HTML causes duplicate text results when searching (Ctrl+F) in the PDF.
+
+A. PRUNING SCRIPT:
+During PDF generation, a script is injected into the headless browser (Playwright).
+
+B. VIEWPORT MASKING:
+The script loops through every page copy. It identifies every leaf element and checks its position relative to the current viewport.
+
+C. CONTENT STRIPPING:
+If an element is not visible in the current page's camera window:
+- Its CSS visibility is set to 'hidden'.
+- Its text content is temporarily stripped from the DOM.
+- Result: Each PDF page physically only contains the text visible on that page. Search finds only 1 result per word.
+
+4. CSS ARCHITECTURE (STRICT STYLES)
+-----------------------------------
+- 'break-inside: avoid': Applied to all typography tags to tell the browser's engine to keep blocks whole.
+- 'display: block !important': Forced on pages to ensure vertical flow is predictable.
+- 'contain: paint': Used on viewports to isolate rendering cycles and prevent leakage between page copies.
+
+-----------------------------------------------------------------------
+SUMMARY:
+This approach maintains the perfect synchronization of the "Two Camera" system while making it layout-aware, ensuring no line of text is ever split in half horizontally.
+

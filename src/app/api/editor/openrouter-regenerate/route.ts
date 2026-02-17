@@ -82,10 +82,15 @@ STRICT RULES:
 - DO NOT add any animations, transitions, or hover effects. This HTML is for a static PDF document, so dynamic effects like scale, transform, transition, or hover: classes are strictly forbidden and will not work.
 - NEVER add horizontal scrollbars (overflow-x: scroll/auto).
 - NEVER add vertical scrollbars or internal scrolling containers (overflow-y: scroll/auto).
+- DO NOT wrap the content in fixed A4 dimensions (e.g., BAN 'h-[297mm]', 'w-[210mm]', or manual page-splitting divs). The editor handles the A4 container and pagination; you must provide a continuous 'Natural Flow' of content that expands vertically as needed.
 - NEVER use 'position: absolute' or 'position: fixed' for layout components. These break standard document flow and do not print correctly across multiple pages. All elements must follow natural document flow for accurate PDF pagination.
 - CRITICAL: No container (div, aside, section, etc.) should EVER have a fixed height (e.g., h-[500px], h-screen, max-h-...) or overflow settings that trigger a scrollbar. Sidebars and headers must be fluid and expand vertically to fit their content.
 - Ensure all content fits within the fixed A4 width (210mm) using text to be of appropriate size and other styling.
 - The design must be completely static and optimized for high-quality PDF print output.
+- DO NOT use relative CSS units that depend on the viewport or parent container:
+  * BAN: vh, vw, vmin, vmax (Never use 'h-screen', 'w-screen', etc.).
+  * BAN: percentage-based heights (Never use 'h-full', 'h-[50%]', 'min-h-full').
+      * BAN: min-height using 'vh' or 'screen'.
 
 Generate the modified HTML now:`;
         } else if (customPrompt) {

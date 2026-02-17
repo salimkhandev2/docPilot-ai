@@ -112,7 +112,11 @@ STRICT DESIGN POLICY (Fixed A4 Document):
 - DO NOT use responsive utility classes like 'hidden sm:block' or similar.
 - Use baseline classes ONLY (e.g., 'grid-cols-3', NOT 'lg:grid-cols-3').
 - EXPLICIT POLICY: Even if the user request asks for "responsive design", "mobile support", or specific breakpoints, YOU MUST IGNORE IT. The output must be perfectly aligned for a fixed A4 (210mm wide) format.
-- All layouts must be static and optimized for high-quality PDF print output.
+- DO NOT use relative CSS units that depend on the viewport or parent container:
+  * BAN: vh, vw, vmin, vmax (Never use 'h-screen', 'w-screen', etc.).
+  * BAN: percentage-based heights (Never use 'h-full', 'h-[50%]', 'min-h-full').
+  * BAN: min-height using 'vh' or 'screen'.
+
 
 
 STRICT TECHNICAL RULES:
@@ -126,6 +130,8 @@ STRICT TECHNICAL RULES:
 - DO NOT include <!DOCTYPE>, <html>, <head>, or <body> tags.
 - Preserve all id and class attributes unless instructed otherwise.
 - NEVER add horizontal or vertical scrollbars.
+- DO NOT wrap the content in fixed A4 dimensions (e.g., BAN 'h-[297mm]', 'w-[210mm]', or manual page-splitting divs). The editor handles the A4 container and pagination; you must provide a continuous 'Natural Flow' of content that expands vertically as needed.
+
 
 Generate the static A4-aligned HTML now:`;
     } else if (customPrompt) {
@@ -237,14 +243,14 @@ Generate the static A4-aligned HTML now:`;
 
         try {
           const response = await client.models.generateContentStream({
-            model: "gemini-2.5-flash-lite",
+            model: "gemini-2.5-flash",
             contents: contents,
             config: {
               responseModalities: ["TEXT"],
               temperature: 0.7,
               topP: 0.95,
               topK: 40,
-              maxOutputTokens: 16384,
+              maxOutputTokens: 88888999,
               thinkingConfig: {
                 thinkingBudget: 512,
               },
@@ -259,7 +265,7 @@ Generate the static A4-aligned HTML now:`;
               chunkCount++;
               fullHTML += chunkText;
               // preview chunk in console
-              console.log(`[Chunk ${chunkCount}] ${chunkText} `);
+              console.log(`${chunkText}`);
               // Send chunk to client
               sendChunk(chunkText, false);
 
