@@ -1,0 +1,58 @@
+LAYOUT REFINER ARCHITECTURE: SURGICAL LEAF-TARGETING & VERIFIED MOVEMENT
+========================================================================
+
+PHILOSOPHY:
+The refiner treats the HTML document as a physical page. Its primary goal is to 
+ensure no content (text, lines, borders) physically touches or crosses the 
+page boundaries (red dashed lines). It uses a "Surgical" approach, targeting 
+the deepest possible element rather than moving entire sections.
+
+CORE PHASES IN EVERY SCAN:
+--------------------------
+
+1. STABILITY RESET (Cleanup)
+   - Goal: Stop margin accumulation and fix previous bugs (like 40,000px gaps).
+   - Action: Identify any element with 'data-refiner-margin' or any margin > 1000px.
+   - Fix: Reset these specific margins to 0px before starting the scan. 
+   - Benefit: Calculates the "Natural Layout" so math is always predictable.
+
+2. SURGICAL DETECTION (The Drill)
+   - Goal: Find the exact element crossing the line, not just the "container".
+   - Logic: 
+     - Scan components from TOP to BOTTOM.
+     - Find the first element crossing a boundary (e.g., 1123px, 2246px).
+     - RECURSION: If a large container (like <div>) crosses the line, DRILL DOWN 
+       into its children.
+     - Repeat until the absolute DEEPEST child (the "Leaf" node like <p>, <li>, or <h3>) 
+       is found that is responsible for the clash.
+   - Benefit: Moves individual bullet points or paragraphs, leaving headings on the 
+     previous page if they fit.
+
+3. PAGING BOUNDARY RULES
+   - Cross Violation: Any pixel part of the element spans across the red line.
+   - Orphan Guard: If an element starts within 20px of the red line, it is treated 
+     as a violation and pushed (prevents a single line of text from being left alone).
+   - Shell Protection: Never apply margins to the absolute root container or shell.
+
+4. PRECISE JUMP CALCULATION
+   - Formula: Jump = (BoundaryPosition - ElementTop) + GAP_SIZE (e.g., 10px).
+   - Action: Applies the margin-top to the leaf element.
+   - Labeling: Tags the element with 'data-refiner-margin="true"' for future resets.
+
+5. THE VERIFICATION LOOP (Proof of Fix)
+   - Goal: Ensure the CSS change actually moved the element (handles nesting conflicts).
+   - Wait: Pauses for 80ms to allow the browser to reflow the DOM.
+   - Re-measure: Fetches new getBoundingClientRect() coordinates.
+   - Verification: 
+     - PASS: If the new position is safely below the line, lock (handledCids) and move on.
+     - FAIL: If still crossing, do NOT lock; the next iteration will retry with new math.
+   - Iterations: Runs up to 100 times to fix complex cascading layouts.
+
+VISUALIZATION:
+--------------
+- Draws dashed red lines at every {PAGE_HEIGHT} interval.
+- Adds "PAGE X START" labels to the canvas for user visibility.
+
+REUSE NOTES:
+- This approach is "Deterministic": the same input will always produce the same fixed layout.
+- It is "Non-Destructive": It only touches margin-top and leaves other styling (color, padding) alone.

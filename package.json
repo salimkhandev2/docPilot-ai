@@ -30,6 +30,7 @@
     "dotenv": "^17.2.3",
     "eventsource": "^4.0.0",
     "express": "^5.2.1",
+    "fs-extra": "^11.3.3",
     "grapesjs": "^0.22.13",
     "grapesjs-blocks-basic": "^1.0.2",
     "grapesjs-page-break": "^0.2.0",

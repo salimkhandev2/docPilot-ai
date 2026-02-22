@@ -5,6 +5,6 @@ export const defaultHtml = `
     Do NOT add any padding or margins.
     The generated code should be inserted directly here.
   -->
-  Hello
+Hello World
 </div>
 `

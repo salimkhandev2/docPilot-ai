@@ -4,6 +4,8 @@ import grapesjs from "grapesjs";
 import { defaultHtml } from "@/data/defaultHtml";
 import { convertBlobURLsToBase64 } from "@/utils/blobConverter";
 import { convertComponentToInlineCSS } from "@/utils/cssToInline";
+import { findComponentsNearRedLines, wrapFlaggedComponents, resetPageBreaks, stripFixationStyles } from "@/utils/findNearMarkers";
+
 import "grapesjs/dist/css/grapes.min.css";
 import { useEffect, useRef, useState } from "react";
 
@@ -86,6 +88,7 @@ const DOCUMENT_STRICT_STYLES = `
 `;
 
 
+
 export default function GrapesEditor() {
   const containerRef = useRef(null);
   const [editor, setEditor] = useState(null);
@@ -103,6 +106,7 @@ export default function GrapesEditor() {
   const [pdfPageHeight, setPdfPageHeight] = useState(1122.5); // Dynamically calculated from physical units
   const [customUnit, setCustomUnit] = useState('mm');
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [layoutIssues, setLayoutIssues] = useState(0);
 
   // Helper Functions
   const convertToPixels = (cssValue, frameDoc) => {
@@ -204,6 +208,12 @@ export default function GrapesEditor() {
         blobURLsRef.current.delete(src);
         console.log(`🗑️ Blob URL revoked: ${src}`);
       }
+    });
+
+    // Strip fixation styles when components are cloned
+    editor.on('component:clone', (cloned) => {
+      stripFixationStyles(cloned);
+      console.log('✨ Cloned component stripped of page-break fixation styles');
     });
 
     // Register visual-page component
@@ -350,6 +360,7 @@ body {
     // ... (Tailwind config continues below) change from editorRef.current.getEditor to editor.getEditor specific assignment
     editorRef.current = editor;
     setEditor(editor);
+    window.editor = editor; // Expose for debugging
 
     // Original code used editorRef.current as container, then assigned editor instance to it? 
     // Wait, the original code: editorRef.current = editor; 
@@ -408,8 +419,22 @@ if (typeof tailwind !== 'undefined') {
     });
 
     //----------------------------------------------------------------------
-    // ADD AI REGENERATE BUTTON
+    // ADD UTILITY BUTTONS
     //----------------------------------------------------------------------
+    editor.Panels.addButton('options', {
+      id: 'check-markers',
+      className: 'fa fa-search',
+      command: 'check-near-lines',
+      attributes: { title: 'Check Near Page Breaks' }
+    });
+
+    editor.Panels.addButton('options', {
+      id: 'wrap-markers',
+      className: 'fa fa-cube',
+      command: 'wrap-near-lines',
+      attributes: { title: 'Wrap Risk Elements' }
+    });
+
     editor.Panels.addButton('options', {
       id: 'ai-regenerate',
       className: 'fa fa-magic',
@@ -417,7 +442,33 @@ if (typeof tailwind !== 'undefined') {
       attributes: { title: 'AI Regenerate' }
     });
 
+
+
     //----------------------------------------------------------------------
+    // UTILITY COMMANDS
+    //----------------------------------------------------------------------
+    editor.Commands.add('check-near-lines', {
+      run: (editor) => {
+        const results = findComponentsNearRedLines(editor, 10);
+        if (results.length > 0) {
+          console.table(results.map(r => ({ ID: r.id, Tag: r.tag })));
+          console.log(`Found ${results.length} components near page break lines.`);
+        } else {
+          console.log('All components are safely away from red lines.');
+        }
+      }
+    });
+
+    editor.Commands.add('wrap-near-lines', {
+      run: (editor) => {
+        const count = wrapFlaggedComponents(editor);
+        console.log(count > 0 ? `Pushed ${count} components below page breaks.` : 'Nothing to push.');
+      }
+    });
+
+    editor.Commands.add('reset-page-breaks', {
+      run: (editor) => { resetPageBreaks(editor); }
+    });
 
     //----------------------------------------------------------------------
     // AI REGENERATION COMMAND WITH STREAMING
@@ -440,7 +491,7 @@ if (typeof tailwind !== 'undefined') {
           const callbacks = modalCallbacksRef.current;
 
           callbacks.setModalData({
-            userRequest: "Make a fancy and genxy Cyber Security resume for Salim Khan, highlighting expertise in network security, ethical hacking, threat intelligence, incident response, vulnerability assessment, cloud security (AWS/Azure), penetration testing tools, and industry certifications like CISSP or CEH. Focus on technical skills, project impact, and security-first mindset.",
+            userRequest: "Make a Professional Security resume for Salim Khan, highlighting expertise in network security, ethical hacking, threat intelligence, incident response, vulnerability assessment, cloud security (AWS/Azure), penetration testing tools, and industry certifications like CISSP or CEH. Focus on technical skills, project impact, and security-first mindset.",
             imageFile: null,
             imageUrl: '',
             imagePreview: null,
@@ -492,17 +543,20 @@ if (typeof tailwind !== 'undefined') {
 
                 // Performance optimization: Use requestAnimationFrame for smooth updates
                 let pendingUpdate = false;
+                let isFinalized = false; // Safety flag to prevent double-finalization
                 let latestHTML = '';
                 let lastCleanedPreview = ''; // Reusability & Efficiency: Track the actual visible changes
                 let streamingContainer = null;
 
                 // Helper: Schedule update on next animation frame (syncs with browser repaint)
                 const scheduleUpdate = (isFinal = false) => {
+                  if (isFinalized) return;
                   if (pendingUpdate && !isFinal) return;
 
                   pendingUpdate = true;
                   requestAnimationFrame(() => {
                     pendingUpdate = false;
+                    if (isFinalized) return;
 
                     try {
                       // 1. Create one stable container if it doesn't exist
@@ -539,12 +593,14 @@ if (typeof tailwind !== 'undefined') {
                       }
 
                       // 3. On finalization, replace the container with final GrapesJS components
-                      if (isFinal && latestHTML) {
+                      if (isFinal && latestHTML && streamingContainer && streamingContainer.parent()) {
+                        isFinalized = true; // Mark as done to prevent double trigger
                         console.log("🏁 Finalizing AI component integration...");
                         // Clean the final HTML one last time
                         const finalHTML = cleanAIResponse(latestHTML);
                         if (validateAIResponse(finalHTML)) {
                           const finalComponent = streamingContainer.replaceWith(finalHTML);
+                          streamingContainer = null; // Prevent double-replacement
                           const instantiated = Array.isArray(finalComponent) ? finalComponent[0] : finalComponent;
                           if (instantiated) {
                             editor.select(instantiated);
@@ -574,9 +630,9 @@ if (typeof tailwind !== 'undefined') {
                   }
                 });
 
-                // Final safety: Call update with full cleaned result from the backend
+                // Final safety: Use full cleaned result from the backend
                 latestHTML = cleanedHTML;
-                scheduleUpdate(true);
+                // scheduleUpdate(true); // Callback usually handles this; safety logic prevents double run anyway
 
                 // Final confirmation
                 accumulatedHTML = cleanedHTML;
@@ -590,6 +646,13 @@ if (typeof tailwind !== 'undefined') {
 
                 um.stop();
                 console.log("✅ AI streaming completed successfully");
+
+                // --- AUTO FIX ONCE AFTER AI ---
+                setTimeout(() => {
+                  console.log("🤖 Post-AI Auto-Fix starting...");
+                  wrapFlaggedComponents(editor);
+                }, 800);
+
                 resolve();
 
               } catch (error) {
@@ -647,6 +710,12 @@ if (typeof tailwind !== 'undefined') {
       const pageHeight = pdfPageHeightRef.current;
       if (!pageHeight || pageHeight <= 0) return;
 
+      setPageCount(pages.length);
+
+      // Check for layout issues (crossings)
+      const results = findComponentsNearRedLines(editor, 10);
+      setLayoutIssues(results.length);
+
       pages.forEach(page => {
         const el = page.getEl();
         if (!el) return;
@@ -663,34 +732,41 @@ if (typeof tailwind !== 'undefined') {
 
         // Add visual indicators
         for (let i = 1; i < numberOfPages; i++) {
+          const markerY = i * pageHeight;
+          const isBroken = results.some(r => r.boxes.some(b => b.markerY === markerY));
+
           const marker = frameDoc.createElement('div');
           marker.className = 'page-break-indicator';
           marker.style.cssText = `
-position: absolute;
-left: 0;
-right: 0;
-top: ${i * pageHeight}px;
-height: 2px;
-background: repeating-linear-gradient(90deg, #ff4444 0, #ff4444 15px, transparent 15px, transparent 30px);
-pointer-events: none;
-z-index: 9999;
-`;
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: ${markerY}px;
+            height: 2px;
+            background: ${isBroken ? '#ff4444' : 'repeating-linear-gradient(90deg, #ff4444 0, #ff4444 15px, transparent 15px, transparent 30px)'};
+            box-shadow: ${isBroken ? '0 0 10px rgba(255, 68, 68, 0.5)' : 'none'};
+            pointer-events: none;
+            z-index: 9999;
+            transition: all 0.3s ease;
+          `;
 
           const label = frameDoc.createElement('span');
-          label.textContent = `PAGE ${i + 1} START`;
+          label.textContent = isBroken ? `⚠️ PAGE ${i + 1} OVERLAP` : `PAGE ${i + 1} START`;
           label.style.cssText = `
-position: absolute;
-right: 5px;
-top: 2px;
-background: #ff4444;
-color: white;
-padding: 1px 6px;
-font-size: 9px;
-font-weight: bold;
-border-radius: 3px;
-white-space: nowrap;
-opacity: 0.8;
-`;
+            position: absolute;
+            right: 5px;
+            top: 2px;
+            background: #ff4444;
+            color: white;
+            padding: 1px 6px;
+            font-size: 9px;
+            font-weight: bold;
+            border-radius: 3px;
+            white-space: nowrap;
+            opacity: ${isBroken ? '1' : '0.7'};
+            transform: ${isBroken ? 'scale(1.1)' : 'scale(1)'};
+            transition: all 0.3s ease;
+          `;
 
           marker.appendChild(label);
           el.appendChild(marker);
@@ -1193,6 +1269,27 @@ opacity: 0.8;
               </form>
             </div>
           </div>
+        </div>
+      )}
+      {/* Floating Layout Alert Badge */}
+      {layoutIssues > 0 && (
+        <div
+          className="fixed top-20 left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-3 bg-red-600 text-white px-4 py-2 rounded-full shadow-2xl animate-bounce hover:animate-none group cursor-pointer border-2 border-white/20 transition-all active:scale-95"
+          onClick={() => editor && wrapFlaggedComponents(editor)}
+          title="Click to fix all page break issues"
+        >
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
+            </span>
+            <span className="font-bold text-sm tracking-wide uppercase">
+              {layoutIssues} PAGE BREAK {layoutIssues === 1 ? 'ISSUE' : 'ISSUES'} DETECTED
+            </span>
+          </div>
+          <button className="bg-white text-red-600 px-3 py-0.5 rounded-full text-xs font-black uppercase group-hover:bg-red-50 transition-colors shadow-sm">
+            Fix All
+          </button>
         </div>
       )}
     </>

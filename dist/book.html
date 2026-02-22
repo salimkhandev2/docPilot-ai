@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The 40 Universal Laws of Life</title>
+    <style>
+/* ============================================
+   RESET & BASE
+   ============================================ */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-size: 11pt;
+    line-height: 1.7;
+    color: #333;
+    text-align: justify;
+    text-align-last: left;
+}
+
+/* ============================================
+   PAGE SETUP - PAGED MEDIA
+   ============================================ */
+@page {
+    size: A4;                    /* 210mm × 297mm */
+    margin: 2.5cm 2cm;           /* Top/bottom, left/right */
+    
+    @bottom-center {
+        content: counter(page);
+        font-size: 9pt;
+    }
+}
+
+@page :first { 
+    margin: 0; 
+    @bottom-center { content: none; } 
+}
+
+@page cover { 
+    margin: 0; 
+    @bottom-center { content: none; } 
+}
+
+@page toc { 
+    @bottom-center { content: none; } 
+}
+
+@page copyright { 
+    @bottom-center { content: none; } 
+}
+
+@page dedication { 
+    @bottom-center { content: none; } 
+}
+
+/* ============================================
+   PAGE BREAK CONTROL
+   ============================================ */
+.law-page,
+.chapter-page,
+.preface-page,
+.introduction-page,
+.toc-page,
+.copyright-page,
+.dedication-page,
+.closing-page {
+    page-break-after: always;
+}
+
+h3 {
+    page-break-after: avoid;
+}
+
+.law-header,
+.action-steps,
+.reflection-question,
+.key-takeaway,
+tr {
+    page-break-inside: avoid;
+}
+
+p {
+    orphans: 2;
+    widows: 2;
+    margin-bottom: 0.5cm;
+    text-indent: 1.5em;
+}
+
+/* ============================================
+   COVER PAGE
+   ============================================ */
+.cover {
+    width: 210mm;
+    height: 297mm;
+    margin: 0;
+    position: relative;
+    overflow: hidden;
+    page: cover;
+    page-break-after: always;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+}
+
+.cover-decoration {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.geometric-circle {
+    position: absolute;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.1);
+}
+
+.circle-1 {
+    width: 400px;
+    height: 400px;
+    top: -100px;
+    right: -100px;
+}
+
+.circle-2 {
+    width: 300px;
+    height: 300px;
+    bottom: -50px;
+    left: -50px;
+    border-color: rgba(255,255,255,0.05);
+}
+
+.geometric-line {
+    position: absolute;
+    background: rgba(255,255,255,0.08);
+}
+
+.line-1 {
+    width: 2px;
+    height: 60%;
+    top: 20%;
+    left: 15%;
+    transform: rotate(15deg);
+}
+
+.line-2 {
+    width: 2px;
+    height: 40%;
+    top: 30%;
+    right: 20%;
+    transform: rotate(-10deg);
+}
+
+.geometric-dot {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 50%;
+}
+
+.dot-1 { top: 25%; left: 20%; }
+.dot-2 { top: 60%; right: 25%; }
+.dot-3 { bottom: 30%; left: 30%; }
+
+.cover-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    width: 80%;
+    z-index: 10;
+}
+
+.cover-icon {
+    font-size: 48pt;
+    color: #e94560;
+    margin-bottom: 2cm;
+}
+
+.cover-title {
+    font-size: 36pt;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 0.8cm;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.cover-subtitle {
+    font-size: 14pt;
+    color: rgba(255,255,255,0.8);
+    margin-bottom: 3cm;
+    font-style: italic;
+    letter-spacing: 1px;
+}
+
+.cover-divider {
+    width: 100px;
+    height: 3px;
+    background: #e94560;
+    margin: 0 auto 2cm;
+}
+
+.cover-meta {
+    color: rgba(255,255,255,0.7);
+    font-size: 12pt;
+}
+
+.cover-author {
+    margin-bottom: 0.3cm;
+}
+
+/* ============================================
+   FRONT MATTER PAGES
+   ============================================ */
+.copyright-page {
+    page: copyright;
+    page-break-after: always;
+    padding: 3cm 2cm;
+}
+
+.copyright-content {
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.copyright-title {
+    font-size: 18pt;
+    font-weight: bold;
+    margin-bottom: 0.3cm;
+    text-align: center;
+}
+
+.copyright-subtitle {
+    font-size: 12pt;
+    font-style: italic;
+    margin-bottom: 2cm;
+    text-align: center;
+    color: #555;
+}
+
+.copyright-text {
+    font-size: 10pt;
+    line-height: 1.8;
+}
+
+.copyright-text p {
+    margin-bottom: 0.8cm;
+}
+
+.copyright-notice {
+    text-align: justify;
+    font-size: 9pt;
+    color: #555;
+}
+
+.copyright-contact {
+    margin-top: 2cm;
+    font-size: 9pt;
+}
+
+.dedication-page {
+    page: dedication;
+    page-break-after: always;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 80vh;
+}
+
+.dedication-content {
+    text-align: center;
+    max-width: 400px;
+}
+
+.dedication-label {
+    font-size: 14pt;
+    font-weight: bold;
+    margin-bottom: 2cm;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+}
+
+.dedication-text {
+    font-size: 12pt;
+    font-style: italic;
+    line-height: 2;
+    margin-bottom: 2cm;
+}
+
+.dedication-quote {
+    font-size: 11pt;
+    color: #555;
+}
+
+.quote-author {
+    display: block;
+    margin-top: 0.5cm;
+    font-style: normal;
+}
+
+/* ============================================
+   CHAPTER STYLES
+   ============================================ */
+.preface-page, .introduction-page, .chapter-page, .closing-page {
+    page-break-after: always;
+}
+
+.chapter-title {
+    font-size: 24pt;
+    font-weight: bold;
+    margin-bottom: 0.5cm;
+    color: #1a1a2e;
+}
+
+.chapter-subtitle {
+    font-size: 14pt;
+    font-style: italic;
+    color: #555;
+    margin-bottom: 1.5cm;
+}
+
+.first-paragraph {
+    text-indent: 0;
+}
+
+.first-paragraph::first-letter {
+    font-size: 3em;
+    float: left;
+    line-height: 0.8;
+    margin-right: 0.1em;
+    font-weight: bold;
+    color: #1a1a2e;
+}
+
+h3 {
+    font-size: 14pt;
+    font-weight: bold;
+    margin-top: 1cm;
+    margin-bottom: 0.5cm;
+    color: #1a1a2e;
+    page-break-after: avoid;
+}
+
+.preface-closing, .introduction-closing, .chapter-closing {
+    font-style: italic;
+    font-weight: bold;
+    margin-top: 1cm;
+    text-align: center;
+    font-size: 12pt;
+}
+
+/* ============================================
+   TABLE OF CONTENTS
+   ============================================ */
+.toc-page {
+    page: toc;
+    page-break-after: always;
+}
+
+.toc-title {
+    font-size: 24pt;
+    font-weight: bold;
+    margin-bottom: 1cm;
+    text-align: center;
+}
+
+.toc {
+    list-style: none;
+    padding: 0;
+}
+
+.toc li {
+    margin-bottom: 0.3cm;
+}
+
+.toc a {
+    text-decoration: none;
+    color: #333;
+}
+
+.toc-section {
+    font-weight: bold;
+    margin-top: 0.5cm;
+    font-size: 12pt;
+}
+
+.toc-law {
+    padding-left: 1cm;
+    font-size: 10pt;
+}
+
+/* ============================================
+   LAW PAGES
+   ============================================ */
+.law-page {
+    page-break-after: always;
+}
+
+.section-header {
+    text-align: center;
+    margin-bottom: 1.5cm;
+    padding-bottom: 0.5cm;
+    border-bottom: 2px solid #e94560;
+}
+
+.section-name {
+    font-size: 12pt;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: #666;
+    margin-bottom: 0.2cm;
+}
+
+.section-title {
+    font-size: 18pt;
+    font-weight: bold;
+    color: #1a1a2e;
+}
+
+.law-header {
+    margin-bottom: 1cm;
+    padding: 0.5cm;
+    background: #f8f8f8;
+    border-left: 4px solid #e94560;
+    page-break-inside: avoid;
+}
+
+.law-number {
+    font-size: 10pt;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #e94560;
+    margin-bottom: 0.2cm;
+}
+
+.law-title {
+    font-size: 20pt;
+    font-weight: bold;
+    color: #1a1a2e;
+    margin-bottom: 0.3cm;
+}
+
+.law-definition {
+    font-size: 11pt;
+    font-style: italic;
+    color: #555;
+    line-height: 1.5;
+}
+
+.law-content h3 {
+    font-size: 13pt;
+    color: #1a1a2e;
+    margin-top: 0.8cm;
+    margin-bottom: 0.4cm;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 0.2cm;
+}
+
+.action-steps {
+    margin-left: 1cm;
+    margin-top: 0.5cm;
+    margin-bottom: 0.5cm;
+    page-break-inside: avoid;
+}
+
+.action-steps li {
+    margin-bottom: 0.4cm;
+    line-height: 1.6;
+}
+
+.action-steps li strong {
+    color: #1a1a2e;
+}
+
+.reflection-question {
+    font-style: italic;
+    font-size: 11pt;
+    color: #555;
+    padding: 0.5cm;
+    background: #f0f0f0;
+    border-left: 3px solid #e94560;
+    margin: 0.5cm 0;
+    page-break-inside: avoid;
+}
+
+.key-takeaway {
+    font-weight: bold;
+    font-size: 11pt;
+    color: #1a1a2e;
+    padding: 0.5cm;
+    background: #f8f8f8;
+    border: 1px solid #ddd;
+    margin-top: 0.5cm;
+    page-break-inside: avoid;
+}
+
+/* ============================================
+   TABLES
+   ============================================ */
+.tracking-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.5cm 0;
+    font-size: 10pt;
+}
+
+.tracking-table th, .tracking-table td {
+    border: 1px solid #ddd;
+    padding: 0.3cm;
+    text-align: left;
+}
+
+.tracking-table th {
+    background: #f0f0f0;
+    font-weight: bold;
+}
+
+.tracking-table tr {
+    page-break-inside: avoid;
+}
+
+/* ============================================
+   CLOSING PAGE
+   ============================================ */
+.closing-quote {
+    font-style: italic;
+    font-size: 12pt;
+    text-align: center;
+    margin: 1cm 0 0.3cm;
+}
+
+.closing-blessing {
+    text-align: center;
+    margin: 1.5cm 0;
+    font-style: italic;
+    line-height: 2;
+}
+
+.closing-signature {
+    text-align: center;
+    font-weight: bold;
+    font-size: 12pt;
+    margin-top: 1cm;
+}
+
+/* ============================================
+   UTILITY
+   ============================================ */
+.page-break {
+    page-break-after: always;
+}
+
+/* Prevent overflow */
+pre, table, figure, img, svg, blockquote {
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+a { word-break: break-all; }
+
+ul, ol {
+    margin-left: 1cm;
+    margin-bottom: 0.5cm;
+}
+
+li {
+    margin-bottom: 0.2cm;
+}
+
+    </style>
+</head>
+<body>
+
+<div class="cover">
+    <div class="cover-content">
+        <h1 class="cover-title">The 40 Universal Laws of Life</h1>
+        <p class="cover-subtitle">A Modern Guide to Mastery</p>
+    </div>
+</div>
+<div class="copyright-page">
+    <h1 class="copyright-title">Copyright</h1>
+    <p>All rights reserved.</p>
+</div>
+<div class="dedication-page">
+    <p>Dedicated to the curious mind.</p>
+</div>
+<div class="preface-page">
+    <h1 class="chapter-title">Preface</h1>
+    <p>Why these laws matter.</p>
+</div>
+<div class="introduction-page">
+    <h1 class="chapter-title">Introduction</h1>
+    <p>How to use this book.</p>
+</div>
+
+<!-- TABLE OF CONTENTS -->
+<div class="toc-page" id="toc">
+    <h1 class="toc-title">Table of Contents</h1>
+    <ul class="toc">
+        <li><a href="#preface">Preface: Why These 40 Laws Matter</a></li>
+        <li><a href="#introduction">Introduction: How to Use This Book</a></li>
+
+        <li class="toc-section">Section I: Laws of Mindset & Awareness</li>
+
+        <li class="toc-law"><a href="#law-1">Law 1: The Law of Radical Ownership</a></li>
+
+        <li class="toc-law"><a href="#law-2">Law 2: The Law of Perception Shapes Reality</a></li>
+
+        <li><a href="#integration-chapter">The Integration of All 40 Laws</a></li>
+        <li><a href="#30-day-plan">30-Day Life Reset Plan</a></li>
+        <li><a href="#tracking-template">Personal Growth Tracking Template</a></li>
+        <li><a href="#closing">A Final Word</a></li>
+    </ul>
+</div>
+
+<!-- Law Template - Reusable Structure -->
+<div class="law-page" id="law-1">
+    <div class="section-header">
+        <p class="section-name">Section I</p>
+        <p class="section-title">Laws of Mindset & Awareness</p>
+    </div>
+
+    <div class="law-header">
+        <p class="law-number">Law 1</p>
+        <h2 class="law-title">The Law of Radical Ownership</h2>
+        <p class="law-definition">You are the sole architect of your reality; every outcome traces back to your choices.</p>
+    </div>
+
+    <div class="law-content">
+        <h3>Deep Explanation</h3>
+        <p>Law 1 deep explanation content.</p>
+
+        <h3>Real-World Example</h3>
+        
+
+        <h3>Action Steps</h3>
+        <ol class="action-steps">
+            
+        </ol>
+
+        <h3>Reflection Question</h3>
+        <p class="reflection-question"></p>
+
+        <h3>Key Takeaway</h3>
+        <p class="key-takeaway"></p>
+    </div>
+</div>
+<!-- Law Template - Reusable Structure -->
+<div class="law-page" id="law-2">
+    <div class="section-header">
+        <p class="section-name">Section I</p>
+        <p class="section-title">Laws of Mindset & Awareness</p>
+    </div>
+
+    <div class="law-header">
+        <p class="law-number">Law 2</p>
+        <h2 class="law-title">The Law of Perception Shapes Reality</h2>
+        <p class="law-definition">The world you experience is filtered through your beliefs—change the filter, change the world.</p>
+    </div>
+
+    <div class="law-content">
+        <h3>Deep Explanation</h3>
+        <p>Law 2 deep explanation content.</p>
+
+        <h3>Real-World Example</h3>
+        
+
+        <h3>Action Steps</h3>
+        <ol class="action-steps">
+            
+        </ol>
+
+        <h3>Reflection Question</h3>
+        <p class="reflection-question"></p>
+
+        <h3>Key Takeaway</h3>
+        <p class="key-takeaway"></p>
+    </div>
+</div>
+<div class="closing-page">
+    <h1>Integration</h1>
+</div>
+<div class="closing-page">
+    <h1>30-Day Plan</h1>
+</div>
+<div class="closing-page">
+    <h1>Tracking Template</h1>
+</div>
+<div class="closing-page">
+    <h1>Closing</h1>
+</div>
+
+</body>
+</html>
