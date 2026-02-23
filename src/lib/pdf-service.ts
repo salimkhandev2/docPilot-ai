@@ -14,6 +14,7 @@ export interface PDFExportData {
     css: string;
     pageConfig: PDFPageConfig;
     scripts?: string[];
+    inlineScripts?: string[];
     styles?: string[];
 }
 
@@ -25,7 +26,7 @@ export class PDFService {
      * Generates a merged PDF using parallel chunked rendering.
      */
     static async generate(context: BrowserContext, data: PDFExportData): Promise<Uint8Array> {
-        const { html, numPages, css, pageConfig, scripts = [], styles = [] } = data;
+        const { html, numPages, css, pageConfig, scripts = [], inlineScripts = [], styles = [] } = data;
 
         const pageHeight = Math.round(pageConfig.pixelHeight || 1123);
         const pixelWidth = Math.round(pageConfig.pixelWidth || 1122);
@@ -42,6 +43,7 @@ export class PDFService {
                 <head>
                     <meta charset="UTF-8">
                     ${styles.map((href: string) => `<link rel="stylesheet" href="${href}">`).join('\n')}
+                    ${inlineScripts.map((js: string) => `<script>${js}</script>`).join('\n')}
                     ${scripts.map((src: string) => `<script src="${src}"></script>`).join('\n')}
                     <style>
                         ${css}
@@ -49,6 +51,8 @@ export class PDFService {
                             margin: 0 !important;
                             padding: 0 !important;
                             width: ${pixelWidth}px !important;
+                            -webkit-print-color-adjust: exact !important;
+                            print-color-adjust: exact !important;
                         }
                     </style>
                 </head>
@@ -59,9 +63,9 @@ export class PDFService {
             `;
             await measurementPage.setContent(measureHTML, { waitUntil: 'networkidle', timeout: 30000 });
 
-            // Wait for fonts and a bit for any dynamic layout
+            // Wait for fonts and for the Tailwind Play CDN to finish scanning/injecting
             await measurementPage.evaluate(() => document.fonts.ready);
-            await new Promise(r => setTimeout(r, 500));
+            await new Promise(r => setTimeout(r, 1500));
 
             const actualHeight = await measurementPage.evaluate(() => {
                 const container = document.getElementById('measure-container');
@@ -89,6 +93,7 @@ export class PDFService {
                         html,
                         css,
                         scripts,
+                        inlineScripts,
                         styles,
                         pageConfig,
                         pageHeight,
@@ -119,7 +124,7 @@ export class PDFService {
      * Renders a single batch of pages in its own browser tab.
      */
     private static async renderBatch(context: BrowserContext, params: any): Promise<Buffer> {
-        const { batchIndex, html, css, scripts, styles, pageConfig, pageHeight, pixelWidth, pixelHeight, totalPages } = params;
+        const { batchIndex, html, css, scripts, inlineScripts = [], styles, pageConfig, pageHeight, pixelWidth, pixelHeight, totalPages } = params;
         const startPage = batchIndex * this.BATCH_SIZE;
         const endPage = Math.min(startPage + this.BATCH_SIZE, totalPages);
 
@@ -128,12 +133,38 @@ export class PDFService {
         const page = await context.newPage();
         page.setDefaultTimeout(60000);
 
-        const skeletonHTML = `
+        // Build the full batch HTML string in memory to avoid race conditions with Tailwind scanning
+        let viewportsHTML = '';
+        for (let i = startPage; i < endPage; i++) {
+            viewportsHTML += `
+                <div class="pdf-viewport" style="
+                    height: ${pageHeight}px; 
+                    overflow: hidden; 
+                    position: relative; 
+                    page-break-after: always;
+                    width: 100%;
+                    background: white;
+                    contain: paint;
+                ">
+                    <div class="pdf-shifter" style="
+                        position: relative; 
+                        transform: translateY(-${i * pageHeight}px); 
+                        width: 100%;
+                        transform-origin: top left;
+                    ">
+                        ${html}
+                    </div>
+                </div>
+            `;
+        }
+
+        const fullHTML = `
 <!DOCTYPE html>
 <html lang="en" style="margin: 0; padding: 0;">
 <head>
     <meta charset="UTF-8">
     ${styles.map((href: string) => `<link rel="stylesheet" href="${href}">`).join('\n')}
+    ${inlineScripts.map((js: string) => `<script>${js}</script>`).join('\n')}
     ${scripts.map((src: string) => `<script src="${src}"></script>`).join('\n')}
     <style>
         ${css}
@@ -144,51 +175,17 @@ export class PDFService {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
         }
-        #pdf-source-template { display: none !important; }
     </style>
 </head>
 <body style="margin: 0; padding: 0;">
-    <template id="pdf-source-template">${html}</template>
-    <div id="pdf-pages-container"></div>
+    <div id="pdf-pages-container">
+        ${viewportsHTML}
+    </div>
 </body>
 </html>
         `;
 
-        await page.setContent(skeletonHTML, { waitUntil: 'networkidle', timeout: 60000 });
-
-        // Construct ONLY the viewports for this batch
-        await page.evaluate(({ startPage, endPage, pageHeight }) => {
-            const template = document.getElementById('pdf-source-template') as HTMLTemplateElement;
-            const container = document.getElementById('pdf-pages-container');
-            if (!template || !container) return;
-            const content = template.innerHTML;
-
-            for (let i = startPage; i < endPage; i++) {
-                const viewport = document.createElement('div');
-                viewport.className = 'pdf-viewport';
-                viewport.style.cssText = `
-                    height: ${pageHeight}px; 
-                    overflow: hidden; 
-                    position: relative; 
-                    page-break-after: always;
-                    width: 100%;
-                    background: white;
-                    contain: paint;
-                `;
-                viewport.innerHTML = `
-                    <div class="pdf-shifter" style="
-                        position: relative; 
-                        transform: translateY(-${i * pageHeight}px); 
-                        width: 100%;
-                        transform-origin: top left;
-                        will-change: transform;
-                    ">
-                        ${content}
-                    </div>
-                `;
-                container.appendChild(viewport);
-            }
-        }, { startPage, endPage, pageHeight });
+        await page.setContent(fullHTML, { waitUntil: 'networkidle', timeout: 60000 });
 
         // Inject Print Overrides
         await page.evaluate(({ pixelWidth, pixelHeight }) => {
@@ -201,9 +198,9 @@ export class PDFService {
             document.head.appendChild(style);
         }, { pixelWidth, pixelHeight });
 
-        // Stabilize
+        // Stabilize: Wait for fonts and for the Tailwind Play CDN to finish scanning/injecting
         await page.evaluate(() => document.fonts.ready);
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 2000));
 
         const pdfBuffer = await page.pdf({
             preferCSSPageSize: true,

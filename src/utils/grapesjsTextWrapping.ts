@@ -30,9 +30,13 @@ export const wrapTextNodesForGrapesJS = (container: HTMLElement): void => {
         container.replaceChild(wrapper, node);
       }
     }
-    // Recursively handle child elements
+    // Recursively handle child elements, but skip scripts and styles
     else if (node.nodeType === Node.ELEMENT_NODE) {
-      wrapTextNodesForGrapesJS(node as HTMLElement);
+      const el = node as HTMLElement;
+      const tagName = el.tagName.toLowerCase();
+      if (tagName !== "script" && tagName !== "style") {
+        wrapTextNodesForGrapesJS(el);
+      }
     }
   });
 };

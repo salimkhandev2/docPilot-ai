@@ -6,24 +6,26 @@ import EditorWithHchldernNodesEditing from '../components/Editor/EditorChildEdit
 import BasicsGrapejsGeminiStreaming from '../components/Editor/BasicsGrapejs-gemini-streaming'
 import PagedEditor from '../components/PDFpagination/SizeAndPagination'
 import Simple from '../components/PDFpagination/Simple'
+import MainEditor from '../components/Editor/MainEditor'
 
 
 
 function page() {
   return (
-    // <AuthWrapper>
+    <AuthWrapper>
       <>
         {/* <BasicsGrapejsGeminiStreaming/> */}
         {/* <PagedEditor/> */}
-        {/* <Simple/> */}
 
         <ChatInterface />
+        <MainEditor />
+
         {/* <EditorWithHchldernNodesEditing/> */}
-        <Editor />
-      {/* <Documents/> */}
+        {/* <Editor /> */}
       </>
-    // </AuthWrapper>
-  ) 
+      {/* <Documents/> */}
+    </AuthWrapper>
+  )
 }
 
 export default page

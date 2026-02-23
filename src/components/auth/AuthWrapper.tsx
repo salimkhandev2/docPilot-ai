@@ -1,11 +1,11 @@
 "use client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useState } from "react";
+import React, { useState } from "react";
 import LoginComponent from "./LoginComponent";
 import SignupComponent from "./SignupComponent";
 
 interface AuthWrapperProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 export default function AuthWrapper({ children }: AuthWrapperProps) {
