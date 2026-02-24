@@ -18,7 +18,7 @@ function page() {
         {/* <PagedEditor/> */}
 
         <ChatInterface />
-        <MainEditor />
+    <MainEditor />
 
         {/* <EditorWithHchldernNodesEditing/> */}
         {/* <Editor /> */}

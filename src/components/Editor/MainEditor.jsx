@@ -435,12 +435,6 @@ export default function MainEditor() {
                 "grapesjs-preset-webpage": {
                     blocksBasic: true,
                     forms: true,
-                    modalImportTitle: "Import Template",
-                    modalImportLabel:
-                        '<div style="margin-bottom: 10px; font-size: 13px;">Paste here your HTML/CSS and click Import</div>',
-                    modalImportContent: function (editor) {
-                        return editor.getHtml() + "<style>" + editor.getCss() + "</style>";
-                    },
                     // Enable edition tools
                     textPlugin: true,
                 },
@@ -604,6 +598,16 @@ ${DOCUMENT_STRICT_STYLES}
                 padding: "80px 20px 40px",
                 "min-height": "100vh",
             });
+
+            // Remove preset buttons
+            editor.Panels.removeButton("options", "canvas-clear");
+            editor.Panels.removeButton("options", "gjs-open-import-webpage");
+            editor.Panels.removeButton("devices-c", "set-device-desktop");
+            editor.Panels.removeButton("devices-c", "set-device-tablet");
+            editor.Panels.removeButton("devices-c", "set-device-mobile");
+
+            // Remove Setting button (Traits)
+            editor.Panels.removeButton("views", "open-tm");
 
             // Create visual-page if not present
             if (!wrapper.find(".visual-page").length) {
@@ -1326,10 +1330,6 @@ ${DOCUMENT_STRICT_STYLES}
         editor.Panels.addButton("options", [
             { id: "reload-html-btn", className: "fa fa-refresh", command: "render-full-html", attributes: { title: "Reload HTML with Dependencies" } },
             { id: "preview-pdf-btn", className: "fa fa-file-pdf-o", command: "send-to-preview", attributes: { title: "Preview & Download PDF" } },
-            { id: "export-json-btn", className: "fa fa-download", command: "export-json", attributes: { title: "Export as JSON" } },
-            { id: "clear-canvas-btn", className: "fa fa-trash", command: "clear-canvas", attributes: { title: "Clear Canvas" } },
-            { id: "toggle-blocks-btn", className: "fa fa-th-large", command: "toggle-blocks", attributes: { title: "Toggle Blocks Panel" } },
-            { id: "toggle-right-panel-btn", className: "fa fa-cog", command: "toggle-right-panel", attributes: { title: "Toggle Right Panel" } },
             { id: "open-template-gallery-btn", className: "fa fa-clone", command: "open-template-gallery", attributes: { title: "Open Templates Gallery" } },
             { id: "check-markers", className: "fa fa-search", command: "check-near-lines", attributes: { title: "Check Near Page Breaks" } },
             { id: "wrap-markers", className: "fa fa-cube", command: "wrap-near-lines", attributes: { title: "Wrap Risk Elements" } },
