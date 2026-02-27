@@ -5,6 +5,7 @@ import { ATSresumeTemplateFull } from "./ATSresumeTemplate";
 import { modernReshumeMTFull } from "./modernReshumeMT";
 import { resumeTemplate1Full } from "./resumeTemplate1";
 import { resumeTemplate2Full } from "./resumeTemplate2";
+import { formalResumeFull } from "./formalResume";
 
 export type TemplateDefinition = {
   id: string;
@@ -37,6 +38,12 @@ export const templates: TemplateDefinition[] = [
     title: "ATS Resume Template",
     description: "ATS friendly resume template.",
     html: ATSresumeTemplateFull,
+  },
+  {
+    id: "formal-resume",
+    title: "Formal Resume",
+    description: "Professional, clean formal resume layout.",
+    html: formalResumeFull,
   },
 ];
 

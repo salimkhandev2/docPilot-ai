@@ -184,9 +184,7 @@ export const isVisibleContainer = (comp) => {
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN FIXER — ITERATIVE ATOMIC SETTLE (Final Robustness for 40+ Pages)
 // ═══════════════════════════════════════════════════════════════════════════
-export const wrapFlaggedComponents = (editor, threshold = 10, clearance = 25) => {
-    resetPageBreaks(editor);
-
+export const wrapPageBreaks = (editor, threshold = 10, clearance = 25) => {
     const wrapper = editor.getWrapper();
     const pageContainer = wrapper.find('.visual-page')[0] || wrapper.find('#visual-page-id')[0];
     if (!pageContainer) return 0;
@@ -199,7 +197,6 @@ export const wrapFlaggedComponents = (editor, threshold = 10, clearance = 25) =>
     const markerCount = initialMarkers.length;
 
     console.log(`[PB] Starting Iterative Atomic Settle for ${markerCount} pages...`);
-    editor.UndoManager.start();
 
     // Iterate through markers strictly Top-to-Bottom
     for (let i = 0; i < markerCount; i++) {
@@ -339,7 +336,6 @@ export const wrapFlaggedComponents = (editor, threshold = 10, clearance = 25) =>
         }
     }
 
-    editor.UndoManager.stop();
     editor.refresh();
     editor.Canvas.refresh();
     console.log(`[PB] Iterative Settle Done: ${totalOps} fixed across ${markerCount} pages.`);
@@ -350,11 +346,9 @@ export const wrapFlaggedComponents = (editor, threshold = 10, clearance = 25) =>
 // RESET
 // ═══════════════════════════════════════════════════════════════════════════
 export const resetPageBreaks = (editor) => {
-    editor.UndoManager.start();
     editor.getWrapper().find('[data-pb-pushed]').forEach(comp => {
         stripFixationStyles(comp);
     });
-    editor.UndoManager.stop();
     editor.refresh();
     console.log('[PB] Reset complete');
 };
@@ -386,15 +380,17 @@ export const stripFixationStyles = (comp) => {
 
 
 // Console helpers
-window.runMarkerCheck = (t = 10) => {
-    const ed = window.editor || window.grapesjs?.editors?.[0];
-    return ed ? findComponentsNearRedLines(ed, t) : console.error('Editor not found');
-};
-window.runMarkerWrap = (t = 10, c = 25) => {
-    const ed = window.editor || window.grapesjs?.editors?.[0];
-    return ed ? wrapFlaggedComponents(ed, t, c) : console.error('Editor not found');
-};
-window.resetPageBreaks = () => {
-    const ed = window.editor || window.grapesjs?.editors?.[0];
-    return ed ? resetPageBreaks(ed) : console.error('Editor not found');
-};
+if (typeof window !== 'undefined') {
+    window.runMarkerCheck = (t = 10) => {
+        const ed = window.editor || window.grapesjs?.editors?.[0];
+        return ed ? findComponentsNearRedLines(ed, t) : console.error('Editor not found');
+    };
+    window.runMarkerWrap = (t = 10, c = 25) => {
+        const ed = window.editor || window.grapesjs?.editors?.[0];
+        return ed ? wrapPageBreaks(ed, t, c) : console.error('Editor not found');
+    };
+    window.resetPageBreaks = () => {
+        const ed = window.editor || window.grapesjs?.editors?.[0];
+        return ed ? resetPageBreaks(ed) : console.error('Editor not found');
+    };
+}

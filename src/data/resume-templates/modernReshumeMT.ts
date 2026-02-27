@@ -90,9 +90,9 @@ export const modernReshumeMTFull = `<!DOCTYPE html>
   </script>
 </head>
 
-<body class="bg-slate-100 flex justify-center items-center min-h-screen p-4 font-sans">
+<body class="">
   <div
-    class="preview-content w-[210mm] min-h-[297mm] bg-white text-slate-900 shadow-2xl rounded-3xl overflow-hidden border border-slate-200 relative">
+    class="visual-page mx-auto w-[210mm] min-h-[297mm] bg-white text-slate-900 shadow-2xl rounded-3xl overflow-hidden border border-slate-200 relative">
     <!-- Gradient Accent Background -->
     <div class="gradient-overlay absolute inset-0 pointer-events-none">
       <div class="absolute -top-32 -left-32 w-80 h-80 bg-primary-100/80 rounded-full blur-3xl"></div>

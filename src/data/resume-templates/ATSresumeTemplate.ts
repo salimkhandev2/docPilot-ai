@@ -12,17 +12,16 @@ export const ATSresumeTemplateFull = `<!DOCTYPE html>
           sans-serif;
       }
 
-      .page {
+      .visual-page {
         width: 210mm;
         min-height: 297mm;
-        margin: 16px auto;
         background: #ffffff;
         box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
       }
     </style>
   </head>
-  <body class="antialiased">
-    <div class="page px-10 py-10">
+  <body class="">
+    <div class="visual-page mx-auto px-10 py-10">
       <!-- Header -->
       <header class="border-b border-slate-200 pb-4 mb-6">
         <h1 class="text-3xl font-extrabold tracking-tight text-slate-900">

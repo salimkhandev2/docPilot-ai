@@ -23,9 +23,9 @@ export const resumeTemplate2Full = `<!DOCTYPE html>
     } 
   </style> 
 </head> 
-<body class="bg-gray-100 flex justify-center items-center min-h-screen py-6"> 
+<body class=""> 
   <div 
-    class="w-[210mm] min-h-[297mm] bg-white text-slate-900 shadow-2xl rounded-2xl overflow-hidden border border-slate-200" 
+    class="visual-page mx-auto w-[210mm] min-h-[297mm] bg-white text-slate-900 shadow-2xl rounded-2xl overflow-hidden border border-slate-200" 
   > 
     <!-- Header --> 
     <header class="px-10 pt-10 pb-6 border-b border-slate-200 bg-white"> 

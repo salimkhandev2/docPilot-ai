@@ -90,9 +90,9 @@ export const resumeTemplate1Full = `<!DOCTYPE html>
   </script>
 </head>
 
-<body class="bg-slate-900 flex justify-center items-center min-h-screen p-4 font-sans">
+<body class="">
   <div
-    class="preview-content w-[210mm] min-h-[297mm] bg-slate-950 text-slate-50 shadow-2xl rounded-3xl overflow-hidden border border-slate-800 relative">
+    class="visual-page mx-auto w-[210mm] min-h-[297mm] bg-slate-950 text-slate-50 shadow-2xl rounded-3xl overflow-hidden border border-slate-800 relative">
     <!-- Gradient Accent Background -->
     <div class="gradient-overlay absolute inset-0 pointer-events-none">
       <div class="absolute -top-32 -left-32 w-80 h-80 bg-primary-500/30 rounded-full blur-3xl"></div>
