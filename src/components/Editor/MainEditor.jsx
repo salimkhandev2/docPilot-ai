@@ -9,6 +9,7 @@ import "grapesjs/dist/css/grapes.min.css";
 import { useAIState } from "../../contexts/AIStateContext";
 import { wrapPageBreaks } from "./utils/findNearMarkers";
 import { PAGE_SIZES, OPENROUTER_MODELS } from "./utils/editorConstants";
+import { attachOrphanHeaderDebugger, detachOrphanHeaderDebugger } from "./utils/orphanHeaderDebugger";
 
 // Hooks
 import { useGrapesJsInit } from "./hooks/useGrapesJsInit";
@@ -89,6 +90,14 @@ export default function MainEditor() {
             editor.updateMarkers();
         }
     }, [editor, pdfPageHeight]);
+
+    // ── Attach Debugger ──────────────────────────────────────────
+    useEffect(() => {
+        if (editor) {
+            attachOrphanHeaderDebugger(editor);
+            return () => detachOrphanHeaderDebugger(editor);
+        }
+    }, [editor]);
 
     // ── Hooks ─────────────────────────────────────────────────────
     useGrapesJsInit({
@@ -177,6 +186,8 @@ export default function MainEditor() {
                     handleSizeChange={handleSizeChange}
                     handleOrientationToggle={handleOrientationToggle}
                     handleExportPDF={handleExportPDF}
+                    handleCaptureScreenshot={() => editor?.runCommand("capture-screenshot")}
+                    handleDownloadHTML={() => editor?.runCommand("download-full-html")}
                     isGeneratingPDF={isGeneratingPDF}
                 />
 

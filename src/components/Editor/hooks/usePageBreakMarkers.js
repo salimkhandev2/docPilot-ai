@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { findComponentsNearRedLines } from "../utils/findNearMarkers";
 
 /**
@@ -7,10 +7,15 @@ import { findComponentsNearRedLines } from "../utils/findNearMarkers";
  *  - Dashed gradient line (solid red when broken)
  *  - "PAGE N START" / "⚠️ PAGE N OVERLAP" label
  *  - Box-shadow glow on broken lines
- *  - Debounced 100ms trigger on all relevant events + canvas:drop + load
+ *  - Debounced 800ms trigger on all relevant events + canvas:drop + load
  *  - Early-exit when page fits on a single page
+ *  - Enterprise Optimization: Strict Stateful Memory to kill React Redraw Thrashing
  */
 export function usePageBreakMarkers(editor, pdfPageHeightRef, setPageCount, setLayoutIssues) {
+    // Memory cache to prevent aggressive React re-renders when numbers don't change
+    const lastPageCount = useRef(-1);
+    const lastIssueCount = useRef(-1);
+
     useEffect(() => {
         if (!editor) return;
 
@@ -29,7 +34,12 @@ export function usePageBreakMarkers(editor, pdfPageHeightRef, setPageCount, setL
 
             // Check for layout issues (crossings)
             const results = findComponentsNearRedLines(editor, 10);
-            setLayoutIssues(results.length);
+
+            // Optimization #1: Prevent React State Thrashing
+            if (lastIssueCount.current !== results.length) {
+                setLayoutIssues(results.length);
+                lastIssueCount.current = results.length;
+            }
 
             let totalVirtualPages = 0;
 
@@ -100,16 +110,24 @@ export function usePageBreakMarkers(editor, pdfPageHeightRef, setPageCount, setL
                 }
             });
 
-            setPageCount(totalVirtualPages);
+            // Optimization #2: Prevent React State Thrashing on global Page Count
+            if (lastPageCount.current !== totalVirtualPages) {
+                setPageCount(totalVirtualPages);
+                lastPageCount.current = totalVirtualPages;
+            }
         }
 
         editor.updateMarkers = updatePageBreakMarkers;
 
-        // Debounced trigger — matches original's 100ms debounce pattern
+        // Debounced trigger — strongly throttled with Animation Frame alignment
+        // Bumped to 800ms: This ensures it waits for the user to comfortably *finish* typing
+        // a word or dragging a box before calculating 15 pages worth of geometry.
         let markerTimeout;
         const triggerUpdate = () => {
             clearTimeout(markerTimeout);
-            markerTimeout = setTimeout(updatePageBreakMarkers, 100);
+            markerTimeout = setTimeout(() => {
+                requestAnimationFrame(updatePageBreakMarkers);
+            }, 800);
         };
 
         // Listen to ALL relevant events (includes canvas:drop and load like the original)

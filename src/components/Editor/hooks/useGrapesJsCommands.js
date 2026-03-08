@@ -9,6 +9,7 @@ import { applyRTLIfNeeded, decodeHtmlEntities } from "../utils/grapesJsHelpers";
 import { PAGE_SIZES, OPENROUTER_MODELS } from "../utils/editorConstants";
 import { cleanAIResponse, cleanStreamingHTML, syncDOMNodes, validateAIResponse } from "../utils/htmlSanitizer";
 import { streamGeminiAI, streamOpenRouterAI } from "../services/aiStreamingService";
+import * as htmlToImage from "html-to-image";
 
 export function useGrapesJsCommands({
     editor,
@@ -206,6 +207,90 @@ export function useGrapesJsCommands({
             },
         });
 
+        // ── Screenshot Capture Command ────────────────────────────
+        editor.Commands.add("capture-screenshot", {
+            run: async (ed) => {
+                const frame = ed.Canvas.getFrameEl();
+                if (!frame || !frame.contentWindow) return;
+
+                const frameDoc = frame.contentWindow.document;
+                const body = frameDoc.body;
+
+                // 1. Temporarily hide editor markers and helpers
+                const style = frameDoc.createElement("style");
+                style.id = "screenshot-temp-style";
+                style.innerHTML = `
+                    .gjs-cv-canvas__frames { outline: none !important; }
+                    .gjs-highlighter, .gjs-badge, .gjs-placeholder, .gjs-ghost { display: none !important; }
+                    .page-break-marker, .marker-line { display: none !important; }
+                    * { -webkit-print-color-adjust: exact !important; }
+                `;
+                frameDoc.head.appendChild(style);
+
+                try {
+                    // 2. Capture the body
+                    // We use toPng from html-to-image. 
+                    // pixelRatio improves quality for AI analysis.
+                    const dataUrl = await htmlToImage.toPng(body, {
+                        pixelRatio: 2,
+                        backgroundColor: "#ffffff",
+                        skipFonts: false,
+                    });
+
+                    // 3. Trigger download
+                    const link = document.createElement("a");
+                    link.download = `debug-screenshot-${new Date().getTime()}.png`;
+                    link.href = dataUrl;
+                    link.click();
+                } catch (error) {
+                    console.error("Screenshot capture failed:", error);
+                    alert("Failed to capture screenshot. Check console for details.");
+                } finally {
+                    // 4. Restore markers
+                    const tempStyle = frameDoc.getElementById("screenshot-temp-style");
+                    if (tempStyle) tempStyle.remove();
+                }
+            },
+        });
+
+        // ── HTML Download Command (for debugging) ─────────────────
+        editor.Commands.add("download-full-html", {
+            run: (ed) => {
+                const html = ed.getHtml();
+                const css = ed.getCss() ?? "";
+
+                // Construct a self-contained HTML document
+                const fullHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Document - ${new Date().toLocaleString()}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        ${css}
+        /* Extra resets to match editor canvas if needed */
+        body { margin: 0; padding: 0; overflow-x: hidden; background-color: #f3f4f6; }
+        * { box-sizing: border-box; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="max-w-[210mm] mx-auto bg-white shadow-xl my-8 p-0">
+        ${html}
+    </div>
+</body>
+</html>`;
+
+                const blob = new Blob([fullHtml], { type: "text/html" });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.href = url;
+                link.download = `debug-document-${new Date().getTime()}.html`;
+                link.click();
+                URL.revokeObjectURL(url);
+            }
+        });
+
         // ── Template Gallery Command ──────────────────────────────
         editor.Commands.add("open-template-gallery", {
             run(ed) {
@@ -281,7 +366,7 @@ export function useGrapesJsCommands({
                 return new Promise((resolve) => {
                     const callbacks = modalCallbacksRef.current;
                     callbacks.setModalData({
-                        userRequest: "Make a Professional Security resume for Salim Khan...",
+                        userRequest: "Make a long and Professional Security resume without any table for Salim Khan...",
                         imageFile: null, imageUrl: "", imagePreview: null,
                         aiProvider: "gemini", openRouterModel: OPENROUTER_MODELS[0],
                         onSubmit: async (userRequest, imageFile, imageUrl, aiProvider, openRouterModel) => {
@@ -423,7 +508,8 @@ export function useGrapesJsCommands({
                                     }
                                 );
 
-                                setTimeout(() => { wrapPageBreaks(ed); }, 800);
+                                // Auto page-break fix after AI disabled — use manual "Fix Page Breaks" instead
+                                // setTimeout(() => { wrapPageBreaks(ed); }, 800);
                                 resolve();
                             } catch (error) {
                                 console.error("AI Regenerate Command Error:", error);

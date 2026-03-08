@@ -340,12 +340,10 @@ ${DOCUMENT_STRICT_STYLES}
                     const cur = component.getStyle("display");
                     if (!cur || cur === "inline") component.addStyle({ display: "inline-block" });
                 }
-                const currentClasses = component.get("classes") || [];
-                const classNames = currentClasses.map((cls) => cls.get("name")).filter(Boolean);
-                classNames.forEach((className) => { if (className.startsWith("resize-")) component.removeClass(className); });
-                const randomClass = generateRandomClass();
-                component.addClass(randomClass);
-                currentResizeClass = randomClass;
+                // Disabled: Injecting random classes (resize-xxx) on every click forces the 
+                // browser to recalculate the CSS for the component and all descendants.
+                // It was historically used to 'trick' old GrapesJS UI repaints but is completely deprecated
+                // and causes massive lag on 15+ page documents.
                 applyRTLIfNeeded(component);
             }
             if (component && component.is && component.is("image")) {
@@ -360,19 +358,28 @@ ${DOCUMENT_STRICT_STYLES}
         // ── component:selected – AI inline CSS log ────────────────
         editor.on("component:selected", (component) => {
             if (!component) return;
-            const htmlWithInline = convertComponentToInlineCSS(editor, component, { debug: false });
-            console.log("Selected component HTML with inline styles (for AI):", htmlWithInline);
+            // Offload the massive inline CSS compilation off the main paint thread
+            const compileLog = () => {
+                try {
+                    const htmlWithInline = convertComponentToInlineCSS(editor, component, { debug: false });
+                    console.log("Selected component HTML with inline styles (for AI):", htmlWithInline);
+                } catch (e) {
+                    console.error("AI CSS logger failed:", e);
+                }
+            };
+
+            if ("requestIdleCallback" in window) {
+                window.requestIdleCallback(compileLog, { timeout: 1000 });
+            } else {
+                setTimeout(compileLog, 150);
+            }
         });
 
         // ── component:update RTL ──────────────────────────────────
         editor.on("component:update", (component) => {
+            // Only evaluate the specific component that changed. Removing the intense
+            // O(N) recursive DOM tree traversal prevents freezing the browser when editing layouts.
             applyRTLIfNeeded(component);
-            const checkChildren = (comp) => {
-                if (comp && comp.components) {
-                    comp.components().forEach((child) => { applyRTLIfNeeded(child); checkChildren(child); });
-                }
-            };
-            checkChildren(component);
         });
 
         editor.on("component:styleUpdate", (component) => { applyRTLIfNeeded(component); });
